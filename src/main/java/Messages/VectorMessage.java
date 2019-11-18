@@ -1,10 +1,20 @@
 package Messages;
 
+import io.atomix.utils.serializer.Serializer;
+import io.atomix.utils.serializer.SerializerBuilder;
+
 import java.util.List;
 import java.util.ArrayList;
 
 public class VectorMessage extends Message {
-    List<Integer> v;
+
+    private List<Integer> v;
+
+    public static Serializer serializer = new SerializerBuilder()
+            .addType(VectorMessage.class)
+            .addType(List.class)
+            .build();
+
 
     public VectorMessage(){
         super();

@@ -1,13 +1,11 @@
-import Messages.Message;
+
 import Messages.VectorMessage;
 import io.atomix.cluster.messaging.ManagedMessagingService;
 import io.atomix.cluster.messaging.MessagingConfig;
 import io.atomix.cluster.messaging.impl.NettyMessagingService;
 import io.atomix.utils.net.Address;
 import io.atomix.utils.serializer.Serializer;
-import io.atomix.utils.serializer.SerializerBuilder;
 
-import java.util.Vector;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
@@ -15,11 +13,7 @@ public class Client {
 
     private Address server;
     private ManagedMessagingService mms;
-    private Serializer s = new SerializerBuilder()
-            .addType(VectorMessage.class)
-            .addType(Message.class)
-            .addType(Vector.class)
-            .build();
+    private Serializer s = VectorMessage.serializer;
 
     public Client(Address address, String cluster, Address server) {
         this.server = server;
@@ -36,14 +30,15 @@ public class Client {
         ScheduledExecutorService e = Executors.newScheduledThreadPool(1);
 
         mms.registerHandler("coiso", (a,b)-> {
-            Message m = s.decode(b);
-
+            VectorMessage m = s.decode(b);
+            System.out.println("Recebi: " + m);
         }, e);
     }
 
-    void send(Message m) {
-        System.out.println("Enviei para " + server.port());
-        mms.sendAsync(server, "line", s.encode(m));
+    void send(String msg) {
+        VectorMessage m = new VectorMessage(mms.address().port(),msg);
+        System.out.println("Enviei para " + server.port() + ": " + m);
+        mms.sendAsync(server, "message", s.encode(m));
     }
 
 }

@@ -7,8 +7,8 @@ import java.util.function.Consumer;
 
 public class CausalOrderHandler {
     private int id;
-    private int numPeers;
-    private List<Integer> counters;
+    private int numPeers; // remover
+    private List<Integer> counters; // counter
     private Queue<VectorMessage> waitingMsg;
     private ManagedMessagingService mms;
     private ArrayList<Address> servers;
@@ -18,16 +18,17 @@ public class CausalOrderHandler {
     public CausalOrderHandler(int id, int numPeers){
         this.id = id;
         this.numPeers = numPeers;
-        this.counters = new Vector<>();
+        this.counters = new ArrayList<>();
         for(int i = 0; i<numPeers; i++)
             this.counters.add(0);
         this.waitingMsg = new LinkedList<>();
     }
 
-    public CausalOrderHandler(int id, int numPeers, ManagedMessagingService mms, ArrayList<Address> servers){
+    public CausalOrderHandler(int id, ManagedMessagingService mms, ArrayList<Address> servers){
         this.id = id;
-        this.counters = new Vector<>();
+        this.counters = new ArrayList<>();
         this.mms = mms;
+        int numPeers = servers.size();
         this.servers = new ArrayList<>(numPeers -1);
         for(int i = 0; i<numPeers; i++){
             this.counters.add(0);
@@ -97,9 +98,8 @@ public class CausalOrderHandler {
 
     public void sendToCluster(String msg) {
         VectorMessage m = new VectorMessage(id, msg, numPeers, counters);
-        byte[] toSend = m.toByteArray();
         for (Address a : servers)
-            mms.sendAsync(a, "vectorMessage", toSend);
+            mms.sendAsync(a, "vectorMessage", VectorMessage.serializer.encode(m));
     }
 
     public static void main(String[] args) throws InterruptedException {
