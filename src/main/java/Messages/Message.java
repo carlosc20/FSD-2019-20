@@ -1,6 +1,7 @@
 package Messages;
 
 public abstract class Message {
+
     private int id;
     private String msg;
 

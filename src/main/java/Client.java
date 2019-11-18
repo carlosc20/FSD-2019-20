@@ -7,14 +7,13 @@ import io.atomix.utils.net.Address;
 import io.atomix.utils.serializer.Serializer;
 import io.atomix.utils.serializer.SerializerBuilder;
 
-import java.util.List;
 import java.util.Vector;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
-public class Server {
+public class Client {
 
-    private List<Address> servers;
+    private Address server;
     private ManagedMessagingService mms;
     private Serializer s = new SerializerBuilder()
             .addType(VectorMessage.class)
@@ -22,12 +21,12 @@ public class Server {
             .addType(Vector.class)
             .build();
 
-    public Server(Address address, String cluster, List<Address> servers) {
-        this.servers = servers;
+    public Client(Address address, String cluster, Address server) {
+        this.server = server;
         this.mms = new NettyMessagingService(
-            cluster,
-            address,
-            new MessagingConfig());
+                cluster,
+                address,
+                new MessagingConfig());
     }
 
     void start() {
@@ -36,12 +35,15 @@ public class Server {
 
         ScheduledExecutorService e = Executors.newScheduledThreadPool(1);
 
-        mms.registerHandler("msg", (a,b)-> {
+        mms.registerHandler("coiso", (a,b)-> {
             Message m = s.decode(b);
-            System.out.println(m);
-        }, e);
 
+        }, e);
     }
 
+    void send(Message m) {
+        System.out.println("Enviei para " + server.port());
+        mms.sendAsync(server, "line", s.encode(m));
+    }
 
 }

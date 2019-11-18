@@ -3,7 +3,8 @@ package Messages;
 import java.util.Vector;
 
 public class VectorMessage extends Message {
-    Vector<Integer> v;
+
+    private Vector<Integer> v;
 
     public VectorMessage(){
         super();
@@ -42,7 +43,7 @@ public class VectorMessage extends Message {
         res += this.getId() + "&";
         res += this.getMsg() + "&";
         for(Integer i : v)
-            res+= Integer.toString(i) + ",";
+            res += Integer.toString(i) + ",";
         return res.getBytes();
     }
 
