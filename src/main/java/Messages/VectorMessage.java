@@ -1,25 +1,31 @@
 package Messages;
 
-import java.util.Vector;
+import java.util.List;
+import java.util.ArrayList;
 
 public class VectorMessage extends Message {
-    Vector<Integer> v;
+    List<Integer> v;
 
     public VectorMessage(){
         super();
-        this.v = new Vector<>();
+        this.v = new ArrayList<>();
     }
 
     public VectorMessage(int id, String msg){
         super(id, msg);
-        this.v = new Vector<>();
+        this.v = new ArrayList<>();
     }
 
     public VectorMessage(int id, String msg, int numParticipants){
         super(id, msg);
-        this.v = new Vector<>();
+        this.v = new ArrayList<>();
         for(int i = 0; i<numParticipants; i++)
             this.v.add(0);
+    }
+
+    public VectorMessage(int id, String msg, int numParticipants, List<Integer> v){
+        super(id, msg);
+        this.v = v;
     }
 
     public VectorMessage(VectorMessage m){
@@ -54,7 +60,7 @@ public class VectorMessage extends Message {
         this.v.set(index,value);
     }
 
-    public Vector<Integer> getVector(){
+    public List<Integer> getVector(){
         return this.v;
     }
     public int getElement(int index){
