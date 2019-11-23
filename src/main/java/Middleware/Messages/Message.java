@@ -1,4 +1,7 @@
-package Messages;
+package Middleware.Messages;
+
+import io.atomix.utils.serializer.Serializer;
+import io.atomix.utils.serializer.SerializerBuilder;
 
 public abstract class Message {
 
@@ -37,5 +40,10 @@ public abstract class Message {
                 "id=" + id +
                 ", msg='" + msg + '\'' +
                 '}';
+    }
+
+    public SerializerBuilder getSerializerBuilder() {
+        return Serializer.builder()
+                         .withTypes(Integer.class, String.class);
     }
 }

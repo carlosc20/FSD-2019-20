@@ -1,4 +1,5 @@
-import Messages.VectorMessage;
+import Middleware.CausalOrderHandler;
+import Middleware.Messages.VectorMessage;
 import io.atomix.cluster.messaging.ManagedMessagingService;
 import io.atomix.cluster.messaging.MessagingConfig;
 import io.atomix.cluster.messaging.impl.NettyMessagingService;

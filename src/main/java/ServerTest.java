@@ -6,7 +6,7 @@ public class ServerTest {
     public static void main(String[] args) {
 
         ArrayList<Address> servers = new ArrayList<>(); // encher
-        int n = 10;
+        int n = 3;
         int port = 10000;
         for(int i = 0; i < n; i++) {
             servers.add(Address.from(port + i));

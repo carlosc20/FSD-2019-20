@@ -1,12 +1,13 @@
-package Messages;
+package Middleware.Messages;
 
+import Middleware.VectorOrdering;
 import io.atomix.utils.serializer.Serializer;
 import io.atomix.utils.serializer.SerializerBuilder;
 
 import java.util.List;
 import java.util.ArrayList;
 
-public class VectorMessage extends Message {
+public class VectorMessage extends Message implements VectorOrdering {
 
     private List<Integer> v;
 
@@ -78,14 +79,15 @@ public class VectorMessage extends Message {
     }
 
     @Override
+    //TODO usar o stringbuilder
     public String toString() {
-        String vec="";
+        StringBuilder strb = new StringBuilder();
         for(Integer i : v){
-            vec += Integer.toString(i) + '/';
+            strb.append(Integer.toString(i)).append('/');
         }
         return "VectorMessage{ " +
                 super.toString() +
-                " v= " + vec +
+                " v= " + strb.toString() +
                 '}';
     }
 }
