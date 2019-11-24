@@ -26,7 +26,7 @@ public class CausalOrderHandler<T extends VectorOrdering> {
         this.waitingMsg = new LinkedList<>();
     }
 
-    public CausalOrderHandler(int id, ManagedMessagingService mms, ArrayList<Address> servers){
+    public CausalOrderHandler(int id, ManagedMessagingService mms, List<Address> servers){
         this.id = id;
         this.counters = new ArrayList<>();
         this.mms = mms;

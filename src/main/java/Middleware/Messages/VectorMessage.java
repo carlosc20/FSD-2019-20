@@ -16,7 +16,6 @@ public class VectorMessage extends Message implements VectorOrdering {
             .addType(List.class)
             .build();
 
-
     public VectorMessage(){
         super();
         this.v = new ArrayList<>();
@@ -42,25 +41,6 @@ public class VectorMessage extends Message implements VectorOrdering {
     public VectorMessage(VectorMessage m){
         super(m.getId(), m.getMsg());
         this.v = m.getVector();
-    }
-
-    public void fillFromByteArray (byte[] b){
-        String msg = new String(b);
-        String[] vars = msg.split("&");
-        this.setId(Integer.parseInt(vars[0]));
-        this.setMsg(vars[1]);
-        String[] counters = vars[2].split(",");
-        for(String c : counters)
-            v.add(Integer.parseInt(c));
-    }
-
-    public byte[] toByteArray(){
-        String res = "";
-        res += this.getId() + "&";
-        res += this.getMsg() + "&";
-        for(Integer i : v)
-            res+= Integer.toString(i) + ",";
-        return res.getBytes();
     }
 
     public void addToVector(int c){
