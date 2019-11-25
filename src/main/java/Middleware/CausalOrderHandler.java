@@ -1,18 +1,20 @@
-import Messages.VectorMessage;
+package Middleware;
+
+import Middleware.Messages.VectorMessage;
 import io.atomix.cluster.messaging.ManagedMessagingService;
 import io.atomix.utils.net.Address;
 
 import java.util.*;
 import java.util.function.Consumer;
 
-public class CausalOrderHandler {
+public class CausalOrderHandler<T extends VectorOrdering> {
     private int id;
     private int numPeers; // remover
     private List<Integer> counters; // counter
-    private Queue<VectorMessage> waitingMsg;
+    private Queue<T> waitingMsg;
+    private Consumer<T> callback;
     private ManagedMessagingService mms;
     private ArrayList<Address> servers;
-    private Consumer<VectorMessage> callback;
 
     //para testes
     public CausalOrderHandler(int id, int numPeers){
@@ -24,7 +26,7 @@ public class CausalOrderHandler {
         this.waitingMsg = new LinkedList<>();
     }
 
-    public CausalOrderHandler(int id, ManagedMessagingService mms, ArrayList<Address> servers){
+    public CausalOrderHandler(int id, ManagedMessagingService mms, List<Address> servers){
         this.id = id;
         this.counters = new ArrayList<>();
         this.mms = mms;
@@ -40,11 +42,11 @@ public class CausalOrderHandler {
         this.waitingMsg = new LinkedList<>();
     }
 
-    public void setCallback(Consumer<VectorMessage> callback){
+    public void setCallback(Consumer<T> callback){
         this.callback = callback;
     }
 
-    public void read(VectorMessage msg){
+    public void read(T msg){
         if(inOrder(msg)){
             setCausality(msg);
             callback.accept(msg);
@@ -57,17 +59,16 @@ public class CausalOrderHandler {
         }
     }
 
-    private void setCausality(VectorMessage msg){
+    private void setCausality(T msg){
         counters.set(msg.getId(), msg.getElement(msg.getId()));
-        //counters.set(id, counters.get(id) + 1); //só ao ENVIAR
     }
 
     private void updateQueue(){
-        Iterator<VectorMessage> iter = waitingMsg.iterator();
+        Iterator<T> iter = waitingMsg.iterator();
         //TODO: otimizar
         boolean found = false;
         while (iter.hasNext() && !found){
-            VectorMessage msg = iter.next();
+            T msg = iter.next();
             if(inOrder(msg)){
                 setCausality(msg);
                 callback.accept(msg);
@@ -78,7 +79,7 @@ public class CausalOrderHandler {
         }
     }
 
-    private boolean inOrder(VectorMessage msg){
+    private boolean inOrder(T msg){
         List<Integer> v = msg.getVector();
         boolean condition = true;
         for(int i=0; condition && i < v.size(); i++){
@@ -97,6 +98,7 @@ public class CausalOrderHandler {
     }
 
     public void sendToCluster(String msg) {
+        counters.set(id, counters.get(id) + 1);
         VectorMessage m = new VectorMessage(id, msg, numPeers, counters);
         for (Address a : servers)
             mms.sendAsync(a, "vectorMessage", VectorMessage.serializer.encode(m));
@@ -124,6 +126,7 @@ public class CausalOrderHandler {
         Thread.sleep(2000);
         coh.read(vm1);
 */
+    //Bloco de código concorrente! Métodos desta classe não suportam concorrência. Meter synchronized para testar
         for(int i=1; i<=100; i++){
             VectorMessage vm = new VectorMessage(1,i + ": oi", 2);
             vm.setVectorIndex(1,i);

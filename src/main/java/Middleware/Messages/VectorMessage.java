@@ -1,12 +1,13 @@
-package Messages;
+package Middleware.Messages;
 
+import Middleware.VectorOrdering;
 import io.atomix.utils.serializer.Serializer;
 import io.atomix.utils.serializer.SerializerBuilder;
 
 import java.util.List;
 import java.util.ArrayList;
 
-public class VectorMessage extends Message {
+public class VectorMessage extends Message implements VectorOrdering {
 
     private List<Integer> v;
 
@@ -14,7 +15,6 @@ public class VectorMessage extends Message {
             .addType(VectorMessage.class)
             .addType(List.class)
             .build();
-
 
     public VectorMessage(){
         super();
@@ -43,25 +43,6 @@ public class VectorMessage extends Message {
         this.v = m.getVector();
     }
 
-    public void fillFromByteArray (byte[] b){
-        String msg = new String(b);
-        String[] vars = msg.split("&");
-        this.setId(Integer.parseInt(vars[0]));
-        this.setMsg(vars[1]);
-        String[] counters = vars[2].split(",");
-        for(String c : counters)
-            v.add(Integer.parseInt(c));
-    }
-
-    public byte[] toByteArray(){
-        String res = "";
-        res += this.getId() + "&";
-        res += this.getMsg() + "&";
-        for(Integer i : v)
-            res+= Integer.toString(i) + ",";
-        return res.getBytes();
-    }
-
     public void addToVector(int c){
         this.v.add(c);
     }
@@ -78,14 +59,15 @@ public class VectorMessage extends Message {
     }
 
     @Override
+    //TODO usar o stringbuilder
     public String toString() {
-        String vec="";
+        StringBuilder strb = new StringBuilder();
         for(Integer i : v){
-            vec += Integer.toString(i) + '/';
+            strb.append(Integer.toString(i)).append('/');
         }
         return "VectorMessage{ " +
                 super.toString() +
-                " v= " + vec +
+                " v= " + strb.toString() +
                 '}';
     }
 }

@@ -1,4 +1,5 @@
-import Messages.VectorMessage;
+import Middleware.CausalOrderHandler;
+import Middleware.Messages.VectorMessage;
 import io.atomix.cluster.messaging.ManagedMessagingService;
 import io.atomix.cluster.messaging.MessagingConfig;
 import io.atomix.cluster.messaging.impl.NettyMessagingService;
@@ -6,6 +7,7 @@ import io.atomix.utils.net.Address;
 import io.atomix.utils.serializer.Serializer;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Consumer;
@@ -19,7 +21,7 @@ public class Server {
     private CausalOrderHandler coh;
     private Serializer s = VectorMessage.serializer;
 
-    public Server(int id, ArrayList<Address> servers, Address address, String cluster){
+    public Server(int id, List<Address> servers, Address address, String cluster){
         c = Executors.newFixedThreadPool(1);
         e = Executors.newFixedThreadPool(1);
         users = new ArrayList<>();
