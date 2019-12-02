@@ -17,7 +17,7 @@ public class TransactionState {
         notReadyCounter = participants.size();
     }
 
-    public boolean readyToCommit(Address a){
+    public boolean insertAndReadyToCommit(Address a){
         //para precaver
         if(states.containsKey(a)){
             if(!states.get(a)){

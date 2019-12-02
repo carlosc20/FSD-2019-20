@@ -1,4 +1,4 @@
-package Middleware.Messages;
+package Middleware;
 
 public abstract class Message {
 

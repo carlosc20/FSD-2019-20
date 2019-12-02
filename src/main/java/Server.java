@@ -1,5 +1,5 @@
-import Middleware.CausalOrderHandler;
-import Middleware.Messages.VectorMessage;
+import Middleware.CausalOrdering.CausalOrderHandler;
+import Middleware.CausalOrdering.VectorMessage;
 import io.atomix.cluster.messaging.ManagedMessagingService;
 import io.atomix.cluster.messaging.MessagingConfig;
 import io.atomix.cluster.messaging.impl.NettyMessagingService;
@@ -47,10 +47,9 @@ public class Server {
 
     public void startListeningCluster(){
         Consumer<VectorMessage> cvm = (msg)-> System.out.println(msg.getMsg());
-        coh.setCallback(cvm);
         mms.registerHandler("vectorMessage", (a,b)-> {
             VectorMessage m = s.decode(b);
-            coh.read(m);
+            coh.read(m, cvm);
         }, e);
     }
 

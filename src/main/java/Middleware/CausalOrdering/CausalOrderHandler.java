@@ -1,8 +1,8 @@
-package Middleware;
+package Middleware.CausalOrdering;
 
-import Middleware.Messages.VectorMessage;
 import io.atomix.cluster.messaging.ManagedMessagingService;
 import io.atomix.utils.net.Address;
+import io.atomix.utils.serializer.Serializer;
 
 import java.util.*;
 import java.util.function.Consumer;
@@ -12,7 +12,6 @@ public class CausalOrderHandler<T extends VectorOrdering> {
     private int numPeers; // remover
     private List<Integer> counters; // counter
     private Queue<T> waitingMsg;
-    private Consumer<T> callback;
     private ManagedMessagingService mms;
     private ArrayList<Address> servers;
 
@@ -42,15 +41,12 @@ public class CausalOrderHandler<T extends VectorOrdering> {
         this.waitingMsg = new LinkedList<>();
     }
 
-    public void setCallback(Consumer<T> callback){
-        this.callback = callback;
-    }
-
-    public void read(T msg){
+    //Callback passou a ser do método read e não da classe
+    public void read(T msg, Consumer<T> callback){
         if(inOrder(msg)){
             setCausality(msg);
             callback.accept(msg);
-            updateQueue();
+            updateQueue(callback);
            //System.out.println("ordem correta");
         }
         else{
@@ -63,7 +59,7 @@ public class CausalOrderHandler<T extends VectorOrdering> {
         counters.set(msg.getId(), msg.getElement(msg.getId()));
     }
 
-    private void updateQueue(){
+    private void updateQueue(Consumer<T> callback){
         Iterator<T> iter = waitingMsg.iterator();
         //TODO: otimizar
         boolean found = false;
@@ -73,7 +69,7 @@ public class CausalOrderHandler<T extends VectorOrdering> {
                 setCausality(msg);
                 callback.accept(msg);
                 iter.remove();
-                updateQueue();
+                updateQueue(callback);
                 found = true;
             }
         }
@@ -97,17 +93,36 @@ public class CausalOrderHandler<T extends VectorOrdering> {
         return condition;
     }
 
+//para os testes ainda funcionarem -> deprecated
     public void sendToCluster(String msg) {
         counters.set(id, counters.get(id) + 1);
-        VectorMessage m = new VectorMessage(id, msg, numPeers, counters);
+        VectorMessage m = new VectorMessage(id, msg, counters);
         for (Address a : servers)
             mms.sendAsync(a, "vectorMessage", VectorMessage.serializer.encode(m));
     }
 
+    public void sendToCluster(T semiMsg, Serializer s, String destiny) {
+        updateMsgAndCounter(semiMsg);
+        for (Address a : servers)
+            mms.sendAsync(a, destiny, s.encode(semiMsg));
+    }
+
+    public void sendAnswer(T semiMsg, Serializer s, String destiny, Address a){
+        updateMsgAndCounter(semiMsg);
+        mms.sendAsync(a, destiny, s.encode(semiMsg));
+    }
+
+    private void updateMsgAndCounter(T semiMsg){
+        counters.set(id, counters.get(id) + 1);
+        semiMsg.setId(id);
+        semiMsg.setVector(counters);
+    }
+
+
     public static void main(String[] args) throws InterruptedException {
         Consumer<VectorMessage> cvm = (msg)-> System.out.println(msg.getMsg());
         CausalOrderHandler coh = new CausalOrderHandler(0,2);
-        coh.setCallback(cvm);
+        //coh.setCallback(cvm);
         Random r = new Random();
         int low = 0;
         int high = 6;
@@ -133,7 +148,7 @@ public class CausalOrderHandler<T extends VectorOrdering> {
             new Thread(()-> {
                 try {
                    Thread.sleep(100 * r.nextInt(high - low) + low);
-                   coh.read(vm);
+                   coh.read(vm, cvm);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }

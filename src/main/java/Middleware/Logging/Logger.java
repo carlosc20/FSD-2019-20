@@ -1,6 +1,6 @@
 package Middleware.Logging;
 
-import Middleware.Messages.VectorMessage;
+import Middleware.CausalOrdering.VectorMessage;
 import io.atomix.storage.journal.Indexed;
 import io.atomix.storage.journal.SegmentedJournal;
 import io.atomix.storage.journal.SegmentedJournalReader;

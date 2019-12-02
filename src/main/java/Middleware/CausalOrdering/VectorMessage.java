@@ -1,6 +1,6 @@
-package Middleware.Messages;
+package Middleware.CausalOrdering;
 
-import Middleware.VectorOrdering;
+import Middleware.Message;
 import io.atomix.utils.serializer.Serializer;
 import io.atomix.utils.serializer.SerializerBuilder;
 
@@ -33,7 +33,7 @@ public class VectorMessage extends Message implements VectorOrdering {
             this.v.add(0);
     }
 
-    public VectorMessage(int id, String msg, int numParticipants, List<Integer> v){
+    public VectorMessage(int id, String msg, List<Integer> v){
         super(id, msg);
         this.v = v;
     }
@@ -41,6 +41,10 @@ public class VectorMessage extends Message implements VectorOrdering {
     public VectorMessage(VectorMessage m){
         super(m.getId(), m.getMsg());
         this.v = m.getVector();
+    }
+
+    public void setVector(List<Integer> v) {
+        this.v = v;
     }
 
     public void addToVector(int c){
