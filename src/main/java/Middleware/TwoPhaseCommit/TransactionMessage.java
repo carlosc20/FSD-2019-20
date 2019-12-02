@@ -7,11 +7,13 @@ public class TransactionMessage extends VectorMessage {
     private char response;
 
     public TransactionMessage(){
+        super();
         this.ident = null;
         this.response = 'r';
     }
 
     public TransactionMessage(int transactionId, int serverId,  char response){
+        super();
         this.ident = new Identifier(transactionId, serverId);
         this.response = response;
     }
@@ -33,5 +35,18 @@ public class TransactionMessage extends VectorMessage {
     }
     public void setIdent(Identifier ident) {
         this.ident = ident;
+    }
+
+    @Override
+    public String toString() {
+        return "TransactionMessage{" + super.toString() +
+                "ident=" + ident.toString() +
+                ", response=" + response +
+                '}';
+    }
+
+    public static void main(String[] args) {
+        TransactionMessage tm = new TransactionMessage(1,1,'r') ;
+        System.out.println(tm.toString());
     }
 }

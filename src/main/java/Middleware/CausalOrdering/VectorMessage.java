@@ -1,14 +1,13 @@
 package Middleware.CausalOrdering;
 
-import Middleware.Message;
 import io.atomix.utils.serializer.Serializer;
 import io.atomix.utils.serializer.SerializerBuilder;
 
 import java.util.List;
 import java.util.ArrayList;
 
-public class VectorMessage extends Message implements VectorOrdering {
-
+public class VectorMessage implements VectorOrdering {
+    private int id;
     private List<Integer> v;
 
     public static Serializer serializer = new SerializerBuilder()
@@ -17,38 +16,43 @@ public class VectorMessage extends Message implements VectorOrdering {
             .build();
 
     public VectorMessage(){
-        super();
+        this.id = -1;
         this.v = new ArrayList<>();
     }
 
     public VectorMessage(int id, String msg){
-        super(id, msg);
+        this.id = id;
         this.v = new ArrayList<>();
     }
 
-    public VectorMessage(int id, String msg, int numParticipants){
-        super(id, msg);
+    public VectorMessage(int id, int numParticipants){
+        this.id = id;
         this.v = new ArrayList<>();
         for(int i = 0; i<numParticipants; i++)
             this.v.add(0);
     }
 
-    public VectorMessage(int id, String msg, List<Integer> v){
-        super(id, msg);
+    public VectorMessage(int id, List<Integer> v){
+        this.id = id;
         this.v = v;
     }
 
-    public VectorMessage(VectorMessage m){
-        super(m.getId(), m.getMsg());
-        this.v = m.getVector();
+    @Override
+    public int getId() {
+        return id;
+    }
+
+    @Override
+    public void setId(int id) {
+        this.id = id;
+    }
+
+    public void setV(List<Integer> v) {
+        this.v = v;
     }
 
     public void setVector(List<Integer> v) {
         this.v = v;
-    }
-
-    public void addToVector(int c){
-        this.v.add(c);
     }
 
     public void setVectorIndex(int index, int value){
@@ -58,6 +62,7 @@ public class VectorMessage extends Message implements VectorOrdering {
     public List<Integer> getVector(){
         return this.v;
     }
+
     public int getElement(int index){
         return v.get(index);
     }

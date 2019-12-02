@@ -96,7 +96,7 @@ public class CausalOrderHandler<T extends VectorOrdering> {
 //para os testes ainda funcionarem -> deprecated
     public void sendToCluster(String msg) {
         counters.set(id, counters.get(id) + 1);
-        VectorMessage m = new VectorMessage(id, msg, counters);
+        VectorMessage m = new VectorMessage(id,counters);
         for (Address a : servers)
             mms.sendAsync(a, "vectorMessage", VectorMessage.serializer.encode(m));
     }
@@ -120,13 +120,14 @@ public class CausalOrderHandler<T extends VectorOrdering> {
 
 
     public static void main(String[] args) throws InterruptedException {
+        /*
         Consumer<VectorMessage> cvm = (msg)-> System.out.println(msg.getMsg());
         CausalOrderHandler coh = new CausalOrderHandler(0,2);
         //coh.setCallback(cvm);
         Random r = new Random();
         int low = 0;
         int high = 6;
-/*
+
         VectorMessage vm1 = new VectorMessage(1,"olá", 2);
         VectorMessage vm2 = new VectorMessage(1,"adeus", 2);
         VectorMessage vm3 = new VectorMessage(1,"afinal olá", 2);
@@ -140,7 +141,7 @@ public class CausalOrderHandler<T extends VectorOrdering> {
         coh.read(vm2);
         Thread.sleep(2000);
         coh.read(vm1);
-*/
+
     //Bloco de código concorrente! Métodos desta classe não suportam concorrência. Meter synchronized para testar
         for(int i=1; i<=100; i++){
             VectorMessage vm = new VectorMessage(1,i + ": oi", 2);
@@ -156,5 +157,6 @@ public class CausalOrderHandler<T extends VectorOrdering> {
         }
         while(true)
             Thread.sleep(1000);
+    */
     }
 }
