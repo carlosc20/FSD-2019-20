@@ -60,7 +60,7 @@ public class Logger {
         Serializer s = VectorMessage.serializer;
         Logger l = new Logger("teste", s);
         VectorMessage vm = new VectorMessage(1,"tudo bem??? beijo!", 2);
-        vm.setVectorIndex(0,3);
+        vm.setIndex(0,3);
         l.write(vm);
         ArrayList<Object> messages = l.recover();
         for(int i = 0; i<messages.size(); i++){
