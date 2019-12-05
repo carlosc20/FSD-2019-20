@@ -1,52 +1,57 @@
 package Middleware.TwoPhaseCommit;
 
-import Middleware.CausalOrdering.VectorMessage;
-
-public class TransactionMessage extends VectorMessage {
-    private Identifier ident;
+public class TransactionMessage  {
+    private int transactionId;
     private char response;
+    private Object content;
 
     public TransactionMessage(){
-        super();
-        this.ident = null;
+        this.transactionId = -1;
         this.response = 'r';
+        this.content = null;
     }
 
-    public TransactionMessage(int transactionId, int serverId,  char response){
-        super();
-        this.ident = new Identifier(transactionId, serverId);
+    public TransactionMessage(int transactionId, char response){
+        this.transactionId = transactionId;
         this.response = response;
+        this.content = null;
+    }
+
+    public TransactionMessage(int transactionId, char response, Object content){
+        this.transactionId = transactionId;
+        this.response = response;
+        this.content = content;
+    }
+
+    public int getTransactionId() {
+        return transactionId;
+    }
+
+    public void setTransactionId(int transactionId) {
+        this.transactionId = transactionId;
     }
 
     public char getResponse() {
         return response;
     }
 
-    public Identifier getIdent(){
-        return ident;
-    }
-
     public void setResponse(char response) {
         this.response = response;
     }
 
-    public void setIdent(int transactionId, int serverId) {
-        this.ident = new Identifier(transactionId, serverId);
+    public Object getContent() {
+        return content;
     }
-    public void setIdent(Identifier ident) {
-        this.ident = ident;
+
+    public void setContent(Object content) {
+        this.content = content;
     }
 
     @Override
     public String toString() {
-        return "TransactionMessage{" + super.toString() +
-                "ident=" + ident.toString() +
+        return "TransactionMessage{" +  super.toString() +
+                "ident=" +
                 ", response=" + response +
                 '}';
-    }
-
-    public static void main(String[] args) {
-        TransactionMessage tm = new TransactionMessage(1,1,'r') ;
-        System.out.println(tm.toString());
     }
 }

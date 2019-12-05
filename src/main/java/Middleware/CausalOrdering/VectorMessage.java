@@ -1,9 +1,5 @@
 package Middleware.CausalOrdering;
 
-import io.atomix.utils.serializer.Serializer;
-import io.atomix.utils.serializer.SerializerBuilder;
-
-import javax.annotation.Nonnull;
 import java.util.List;
 import java.util.ArrayList;
 
@@ -20,7 +16,7 @@ public class VectorMessage<T> implements VectorOrdering, Message {
 
     public VectorMessage(int id, List<Integer> v, T content){
         this.id = id;
-        this.v = new ArrayList<>();
+        this.v = v;
         this.content = content;
     }
 
@@ -29,7 +25,9 @@ public class VectorMessage<T> implements VectorOrdering, Message {
         this.v = v;
     }
 
-
+    public T getContent(){
+        return content;
+    }
 
     @Override
     public int getId() {
@@ -69,13 +67,5 @@ public class VectorMessage<T> implements VectorOrdering, Message {
                 super.toString() +
                 " v= " + strb.toString() +
                 '}';
-    }
-
-    @Override
-    public Serializer getSerializer() {
-        return new SerializerBuilder()
-                .addType(VectorMessage.class)
-                .addType(List.class)
-                .build();
     }
 }

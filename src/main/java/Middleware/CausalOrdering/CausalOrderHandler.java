@@ -3,21 +3,24 @@ package Middleware.CausalOrdering;
 import io.atomix.cluster.messaging.ManagedMessagingService;
 import io.atomix.utils.net.Address;
 import io.atomix.utils.serializer.Serializer;
+import io.atomix.utils.serializer.SerializerBuilder;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
-public class CausalOrderHandler<T extends VectorOrdering> {
+public class CausalOrderHandler<T> {
 
     private int id;
     private List<Integer> vector;
     private Queue<VectorMessage> msgQueue;
     private ManagedMessagingService mms;
     private ArrayList<Address> servers;
+    private Serializer s;
 
-
-
-    public CausalOrderHandler(int id, ManagedMessagingService mms, List<Address> servers){
+    public CausalOrderHandler(int id, ManagedMessagingService mms, List<Address> servers, List<Class> types){
         this.id = id;
         this.vector = new ArrayList<>();
         this.mms = mms;
@@ -29,33 +32,25 @@ public class CausalOrderHandler<T extends VectorOrdering> {
             this.servers.add(servers.get(i));
         }
         this.msgQueue = new LinkedList<>();
+        SerializerBuilder sb = new SerializerBuilder()
+                .addType(VectorMessage.class)
+                .addType(List.class);
+        for (Class c: types)
+            sb.addType(c);
+        this.s = sb.build();
     }
 
-    public void read(VectorMessage msg, Consumer<VectorMessage> callback){
+    public void read(byte[] b, Consumer<VectorMessage> callback){
+        VectorMessage msg = s.decode(b);
         if(inOrder(msg)){
-            //System.out.println("ordem correta");
             updateVector(msg);
             callback.accept(msg);
             updateQueue(callback);
         }
         else{
-           //System.out.println("ordem errada");
             msgQueue.add(msg);
         }
     }
-
-    public void sendToCluster(T content, Serializer s, String type) {
-        VectorMessage<T> msg = createMsg(content);
-        for (Address a : servers)
-            mms.sendAsync(a, type, s.encode(msg));
-    }
-
-    public void send(T content, Serializer s, String type, Address a){
-        VectorMessage msg = createMsg(content);
-        mms.sendAsync(a, type, s.encode(msg));
-    }
-
-
 
     private void updateVector(VectorMessage msg){
         int id = msg.getId();
@@ -99,8 +94,6 @@ public class CausalOrderHandler<T extends VectorOrdering> {
         return new VectorMessage<>(id, vector, content);
     }
 
-
-
     // TESTES
     public CausalOrderHandler(int id, int numPeers){
         this.id = id;
@@ -114,32 +107,59 @@ public class CausalOrderHandler<T extends VectorOrdering> {
         vector.set(id, vector.get(id) + 1);
         VectorMessage m = new VectorMessage(id, vector);
         for (Address a : servers)
-            mms.sendAsync(a, "vectorMessage", m.getSerializer().encode(m));
+            mms.sendAsync(a, "vectorMessage", s.encode(m));
+    }
+    public void sendToCluster(T content, String type) {
+        VectorMessage<T> msg = createMsg(content);
+        for (Address a : servers)
+            mms.sendAsync(a, type, s.encode(msg));
+    }
+
+    public void send(T content, String type, Address a){
+        VectorMessage msg = createMsg(content);
+        mms.sendAsync(a, type, s.encode(msg));
+    }
+
+    public void sendAndReceive(T content, String type, Address a, ExecutorService e, Consumer<VectorMessage> cvm){
+        VectorMessage msg = createMsg(content);
+        mms.sendAndReceive(a, type, s.encode(msg), e)
+                .thenAccept((b) -> read(b, cvm));
+    }
+
+    public Serializer getMsgSerializer() {
+        return s;
     }
 
     public static void main(String[] args) throws InterruptedException {
-        Consumer<VectorMessage> cvm = (msg)-> System.out.println("coiso");
+      /*
+        Consumer<VectorMessage> cvm = (msg)-> System.out.println(msg.getContent());
         CausalOrderHandler coh = new CausalOrderHandler(0,2);
-        //coh.setCallback(cvm);
-        Random r = new Random();
-        int low = 0;
-        int high = 6;
-/*
-        VectorMessage vm1 = new VectorMessage(1,"olá", 2);
-        VectorMessage vm2 = new VectorMessage(1,"adeus", 2);
-        VectorMessage vm3 = new VectorMessage(1,"afinal olá", 2);
+
+        ArrayList<Integer> a1 = new ArrayList<>();
+        ArrayList<Integer> a2 = new ArrayList<>();
+        ArrayList<Integer> a3 = new ArrayList<>();
+
+        for(int i = 0; i<2; i++){
+            a1.add(0);
+            a2.add(0);
+            a3.add(0);
+        }
+
+        VectorMessage<String> vm1 = new VectorMessage<>(1,a1, "olá");
+        VectorMessage<String> vm2 = new VectorMessage<>(1,a2, "está tudo bem");
+        VectorMessage<String> vm3 = new VectorMessage<>(1,a3, "adeus");
 
         vm1.setIndex(1,1);
         vm2.setIndex(1,2);
         vm3.setIndex(1,3);
 
-        coh.read(vm3);
+        coh.read(vm3, cvm);
         Thread.sleep(2000);
-        coh.read(vm2);
+        coh.read(vm2, cvm);
         Thread.sleep(2000);
-        coh.read(vm1);
-*/
-    //Bloco de código concorrente! Métodos desta classe não suportam concorrência. Meter synchronized para testar
+        coh.read(vm1, cvm);
+/*
+   //Bloco de código concorrente! Métodos desta classe não suportam concorrência. Meter synchronized para testar
         for(int i=1; i<=100; i++){
             VectorMessage vm = new VectorMessage();
             vm.setIndex(1,i);
@@ -154,5 +174,6 @@ public class CausalOrderHandler<T extends VectorOrdering> {
         }
         while(true)
             Thread.sleep(1000);
+    */
     }
 }
