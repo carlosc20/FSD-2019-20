@@ -1,6 +1,9 @@
 package Middleware.CausalOrdering;
 
+import Middleware.TwoPhaseCommit.TransactionMessage;
 import io.atomix.cluster.messaging.ManagedMessagingService;
+import io.atomix.cluster.messaging.MessagingConfig;
+import io.atomix.cluster.messaging.impl.NettyMessagingService;
 import io.atomix.utils.net.Address;
 import io.atomix.utils.serializer.Serializer;
 import io.atomix.utils.serializer.SerializerBuilder;
@@ -8,8 +11,12 @@ import io.atomix.utils.serializer.SerializerBuilder;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
+import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
+
+
+//TODO meter endereços nas vector messages.
 
 public class CausalOrderHandler<T> {
 
@@ -20,36 +27,59 @@ public class CausalOrderHandler<T> {
     private ArrayList<Address> servers;
     private Serializer s;
 
-    public CausalOrderHandler(int id, ManagedMessagingService mms, List<Address> servers, List<Class> types){
+    public CausalOrderHandler(int id, List<Address> servers, Address myAddr){
         this.id = id;
         this.vector = new ArrayList<>();
-        this.mms = mms;
+        this.mms =  new NettyMessagingService("irr", myAddr, new MessagingConfig());
+        mms.start();
         this.servers = new ArrayList<>();
         for(int i = 0; i<servers.size(); i++){
             this.vector.add(0);
             // servidores tem de ter id's correspondentes a indices -> 0,1..N
-            if(i==id) continue;
+            if(i+1==id) continue;
             this.servers.add(servers.get(i));
         }
         this.msgQueue = new LinkedList<>();
-        SerializerBuilder sb = new SerializerBuilder()
+        this.s = new SerializerBuilder()
                 .addType(VectorMessage.class)
-                .addType(List.class);
-        for (Class c: types)
-            sb.addType(c);
-        this.s = sb.build();
+                .addType(List.class)
+                .addType(TransactionMessage.class)
+                .addType(Object.class)
+                .addType(Address.class)
+                .build();
     }
 
-    public void read(byte[] b, Consumer<VectorMessage> callback){
-        VectorMessage msg = s.decode(b);
-        if(inOrder(msg)){
-            updateVector(msg);
-            callback.accept(msg);
-            updateQueue(callback);
-        }
-        else{
-            msgQueue.add(msg);
-        }
+    public void registerHandler(String type, ExecutorService e, BiConsumer<Object, Address> bf){
+        mms.registerHandler(type, (a, b) -> {
+            VectorMessage msg = s.decode(b);
+            System.out.println(id + ": Received a msg "+ msg.toString());
+            System.out.println(id + ": from: " + msg.getId() + " i have: " + vector.get(msg.getId()));
+            if(inOrder(msg)){
+                System.out.println(id + ": inOrder");
+                updateVector(msg);
+                bf.accept(msg.getContent(),a);
+                updateQueue(bf);
+            }
+            else{
+                System.out.println(id + ": outOfOrder");
+                msg.setSender(a);
+                msgQueue.add(msg);
+            }
+        }, e);
+    }
+
+    public void registerHandlerMartelado(String type, ExecutorService e, BiConsumer<Object, Address> bf){
+        mms.registerHandler(type, (a, b) -> {
+            VectorMessage msg = s.decode(b);
+            System.out.println(id + ": Received a msg "+ msg.toString());
+            bf.accept(msg.getContent(),a);
+        }, e);
+    }
+
+    public CompletableFuture<Void> sendAsyncMartelado(T content, String type, Address a){
+        VectorMessage msg = new VectorMessage<>(id, vector, content);
+        System.out.println(msg.toString());
+        return mms.sendAsync(a, type, s.encode(msg));
     }
 
     private void updateVector(VectorMessage msg){
@@ -57,13 +87,13 @@ public class CausalOrderHandler<T> {
         vector.set(id, msg.getIndex(id));
     }
 
-    private void updateQueue(Consumer<VectorMessage> callback){
+    private void updateQueue(BiConsumer<Object, Address> callback){
         Iterator<VectorMessage> iter = msgQueue.iterator();
         while (iter.hasNext()){
             VectorMessage msg = iter.next();
             if(inOrder(msg)){
                 updateVector(msg);
-                callback.accept(msg);
+                callback.accept(msg.getContent(), msg.getSender());
                 iter.remove();
                 updateQueue(callback);
                 return;
@@ -109,27 +139,27 @@ public class CausalOrderHandler<T> {
         for (Address a : servers)
             mms.sendAsync(a, "vectorMessage", s.encode(m));
     }
-    public void sendToCluster(T content, String type) {
+    //TODO não sei se serve de algo ter CF aqui
+    public CompletableFuture<Void> sendAsyncToCluster(T content, String type) {
         VectorMessage<T> msg = createMsg(content);
         for (Address a : servers)
             mms.sendAsync(a, type, s.encode(msg));
+        return CompletableFuture.completedFuture(null);
     }
 
-    public void send(T content, String type, Address a){
+    public CompletableFuture<Void> sendAsync(T content, String type, Address a){
         VectorMessage msg = createMsg(content);
-        mms.sendAsync(a, type, s.encode(msg));
+        System.out.println(msg.toString());
+        return mms.sendAsync(a, type, s.encode(msg));
     }
-
-    public void sendAndReceive(T content, String type, Address a, ExecutorService e, Consumer<VectorMessage> cvm){
+/*
+    public CompletableFuture<Void> sendAndReceive(T content, String type, Address a, ExecutorService e, Consumer<Object> cvm){
         VectorMessage msg = createMsg(content);
-        mms.sendAndReceive(a, type, s.encode(msg), e)
+        return mms.sendAndReceive(a, type, s.encode(msg), e)
                 .thenAccept((b) -> read(b, cvm));
     }
 
-    public Serializer getMsgSerializer() {
-        return s;
-    }
-
+*/
     public static void main(String[] args) throws InterruptedException {
       /*
         Consumer<VectorMessage> cvm = (msg)-> System.out.println(msg.getContent());

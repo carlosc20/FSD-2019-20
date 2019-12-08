@@ -1,18 +1,30 @@
 package Middleware.CausalOrdering;
 
+import io.atomix.utils.net.Address;
+
 import java.util.List;
 import java.util.ArrayList;
 
 public class VectorMessage<T> implements VectorOrdering, Message {
 
     private int id;
+    private Address sender;
     private List<Integer> v;
     private T content;
 
     public VectorMessage(){
         this.id = -1;
+        this.sender = null;
         this.v = new ArrayList<>();
     }
+
+    public VectorMessage(int id, List<Integer> v, T content, Address sender){
+        this.sender = sender;
+        this.id = id;
+        this.v = v;
+        this.content = content;
+    }
+
 
     public VectorMessage(int id, List<Integer> v, T content){
         this.id = id;
@@ -52,6 +64,14 @@ public class VectorMessage<T> implements VectorOrdering, Message {
         return this.v;
     }
 
+    public Address getSender() {
+        return sender;
+    }
+
+    public void setSender(Address sender) {
+        this.sender = sender;
+    }
+
     @Override
     public int getIndex(int index) {
         return v.get(index);
@@ -59,13 +79,15 @@ public class VectorMessage<T> implements VectorOrdering, Message {
 
     @Override
     public String toString() {
+        String content = this.content == null ? "null" : this.content.toString();
         StringBuilder strb = new StringBuilder();
         for(Integer i : v){
             strb.append(Integer.toString(i)).append('/');
         }
         return "VectorMessage{ " +
-                super.toString() +
+                " serverId= " + this.id +
                 " v= " + strb.toString() +
+                " content= " + content +
                 '}';
     }
 }

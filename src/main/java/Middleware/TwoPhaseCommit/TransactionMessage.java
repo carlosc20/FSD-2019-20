@@ -1,25 +1,29 @@
 package Middleware.TwoPhaseCommit;
 
 public class TransactionMessage  {
+    private int messageId;
     private int transactionId;
-    private char response;
+    private char type;
     private Object content;
 
     public TransactionMessage(){
+        this.messageId = -1;
         this.transactionId = -1;
-        this.response = 'r';
+        this.type = 'b';
         this.content = null;
     }
 
-    public TransactionMessage(int transactionId, char response){
+    public TransactionMessage(int messageId, int transactionId, char response){
+        this.messageId = messageId;
         this.transactionId = transactionId;
-        this.response = response;
+        this.type = response;
         this.content = null;
     }
 
-    public TransactionMessage(int transactionId, char response, Object content){
+    public TransactionMessage(int messageId, int transactionId, char response, Object content){
+        this.messageId = messageId;
         this.transactionId = transactionId;
-        this.response = response;
+        this.type = response;
         this.content = content;
     }
 
@@ -31,12 +35,12 @@ public class TransactionMessage  {
         this.transactionId = transactionId;
     }
 
-    public char getResponse() {
-        return response;
+    public char getType() {
+        return type;
     }
 
-    public void setResponse(char response) {
-        this.response = response;
+    public void setType(char type) {
+        this.type = type;
     }
 
     public Object getContent() {
@@ -47,11 +51,22 @@ public class TransactionMessage  {
         this.content = content;
     }
 
+    public int getMessageId() {
+        return messageId;
+    }
+
+    public void setMessageId(int messageId) {
+        this.messageId = messageId;
+    }
+
     @Override
     public String toString() {
-        return "TransactionMessage{" +  super.toString() +
-                "ident=" +
-                ", response=" + response +
+        String content = this.content == null ? "null" : this.content.toString();
+        return "TransactionMessage{" +
+                " mId= " + this.messageId +
+                " tId= " + this.transactionId +
+                " type= " + this.type +
+                " content= " + content +
                 '}';
     }
 }
