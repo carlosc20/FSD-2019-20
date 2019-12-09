@@ -55,17 +55,4 @@ public class Logger {
         r.close();
         return actions;
     }
-
-    public static void main(String[] args) {
-        Serializer s = VectorMessage.serializer;
-        Logger l = new Logger("teste", s);
-        VectorMessage vm = new VectorMessage(1,"tudo bem??? beijo!", 2);
-        vm.setIndex(0,3);
-        l.write(vm);
-        ArrayList<Object> messages = l.recover();
-        for(int i = 0; i<messages.size(); i++){
-            VectorMessage m = (VectorMessage) messages.get(i);
-            m.toString();
-        }
-    }
 }

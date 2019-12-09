@@ -1,10 +1,6 @@
-import io.atomix.utils.net.Address;
-
-import java.util.ArrayList;
-
 public class ServerTest {
     public static void main(String[] args) {
-
+/*
         ArrayList<Address> servers = new ArrayList<>(); // encher
         int n = 3;
         int port = 10000;
@@ -17,6 +13,6 @@ public class ServerTest {
             s.start();
             if(i == n - 1) s.send("Teste");
         }
-
+ */
     }
 }

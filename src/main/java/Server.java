@@ -10,16 +10,16 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.function.Consumer;
 
 public class Server {
-
+/*
     private ExecutorService c;
     private ExecutorService e;
     private ArrayList<Address> users;
     private ManagedMessagingService mms;
     private CausalOrderHandler coh;
-    private Serializer s = VectorMessage.serializer;
+    //TODO meter um serializer
+    private Serializer s;
 
     public Server(int id, List<Address> servers, Address address, String cluster){
         c = Executors.newFixedThreadPool(1);
@@ -41,19 +41,22 @@ public class Server {
     public void startListeningClients(){
         mms.registerHandler("message", (a,b) -> {
             VectorMessage m = s.decode(b);
-            coh.sendToCluster(m.getMsg());
+            //coh.sendToCluster(m.getMsg());
         }, c);
     }
 
     public void startListeningCluster(){
+
         Consumer<VectorMessage> cvm = (msg)-> System.out.println(msg.getMsg());
         mms.registerHandler("vectorMessage", (a,b)-> {
             VectorMessage m = s.decode(b);
             coh.read(m, cvm);
         }, e);
+
     }
 
     public void send(String msg) {
         coh.sendToCluster(msg);
     }
+      */
 }

@@ -1,52 +1,72 @@
 package Middleware.TwoPhaseCommit;
 
-import Middleware.CausalOrdering.VectorMessage;
-
-public class TransactionMessage extends VectorMessage {
-    private Identifier ident;
-    private char response;
+public class TransactionMessage  {
+    private int messageId;
+    private int transactionId;
+    private char type;
+    private Object content;
 
     public TransactionMessage(){
-        super();
-        this.ident = null;
-        this.response = 'r';
+        this.messageId = -1;
+        this.transactionId = -1;
+        this.type = 'b';
+        this.content = null;
     }
 
-    public TransactionMessage(int transactionId, int serverId,  char response){
-        super();
-        this.ident = new Identifier(transactionId, serverId);
-        this.response = response;
+    public TransactionMessage(int messageId, int transactionId, char response){
+        this.messageId = messageId;
+        this.transactionId = transactionId;
+        this.type = response;
+        this.content = null;
     }
 
-    public char getResponse() {
-        return response;
+    public TransactionMessage(int messageId, int transactionId, char response, Object content){
+        this.messageId = messageId;
+        this.transactionId = transactionId;
+        this.type = response;
+        this.content = content;
     }
 
-    public Identifier getIdent(){
-        return ident;
+    public int getTransactionId() {
+        return transactionId;
     }
 
-    public void setResponse(char response) {
-        this.response = response;
+    public void setTransactionId(int transactionId) {
+        this.transactionId = transactionId;
     }
 
-    public void setIdent(int transactionId, int serverId) {
-        this.ident = new Identifier(transactionId, serverId);
+    public char getType() {
+        return type;
     }
-    public void setIdent(Identifier ident) {
-        this.ident = ident;
+
+    public void setType(char type) {
+        this.type = type;
+    }
+
+    public Object getContent() {
+        return content;
+    }
+
+    public void setContent(Object content) {
+        this.content = content;
+    }
+
+    public int getMessageId() {
+        return messageId;
+    }
+
+    public void setMessageId(int messageId) {
+        this.messageId = messageId;
     }
 
     @Override
     public String toString() {
-        return "TransactionMessage{" + super.toString() +
-                "ident=" + ident.toString() +
-                ", response=" + response +
+        String content = this.content == null ? "null" : this.content.toString();
+        return "TransactionMessage{" +
+                " mId= " + this.messageId +
+                " tId= " + this.transactionId +
+                " type= " + this.type +
+                " content= " + content +
                 '}';
-    }
-
-    public static void main(String[] args) {
-        TransactionMessage tm = new TransactionMessage(1,1,'r') ;
-        System.out.println(tm.toString());
     }
 }

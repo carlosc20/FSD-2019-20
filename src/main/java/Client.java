@@ -13,7 +13,8 @@ public class Client {
 
     private Address server;
     private ManagedMessagingService mms;
-    private Serializer s = VectorMessage.serializer;
+    //TODO meter um serializer
+    private Serializer s;
 
     public Client(Address address, String cluster, Address server) {
         this.server = server;
@@ -36,9 +37,9 @@ public class Client {
     }
 
     void send(String msg) {
-        VectorMessage m = new VectorMessage(mms.address().port(),msg);
-        System.out.println("Enviei para " + server.port() + ": " + m);
-        mms.sendAsync(server, "message", s.encode(m));
+        //VectorMessage m = new VectorMessage(mms.address().port(),msg);
+        //System.out.println("Enviei para " + server.port() + ": " + m);
+        //mms.sendAsync(server, "message", s.encode(m));
     }
 
 }

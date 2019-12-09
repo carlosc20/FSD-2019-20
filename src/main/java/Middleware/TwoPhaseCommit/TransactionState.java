@@ -2,32 +2,37 @@ package Middleware.TwoPhaseCommit;
 
 import io.atomix.utils.net.Address;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class TransactionState {
-    private Map<Address,Boolean> states;
+    private Set<Address> states;
     private int notReadyCounter;
+    private int type; //0->unCommited, 1->commited, 2->aborted
 
     public TransactionState(List<Address> participants){
-        this.states = new HashMap<>();
+        this.type = 0;
+        this.states = new HashSet<>();
         for(Address a : participants)
-            states.put(a,false);
+            states.add(a);
         notReadyCounter = participants.size();
     }
 
     public boolean insertAndReadyToCommit(Address a){
-        //para precaver
-        if(states.containsKey(a)){
-            if(!states.get(a)){
-                states.put(a,true);
-                notReadyCounter--;
-            }
+        if(!states.contains(a)){
+            states.add(a);
+            notReadyCounter--;
         }
         return notReadyCounter == 0;
     }
+
+    public void setCommited() {
+        this.type = 1;
+    }
+
+    public void setAborted() {
+        this.type = 2;
+    }
+
     public static void main(String[] args) {
         ArrayList<Address> servers = new ArrayList<>(); // encher
         int n = 3;
