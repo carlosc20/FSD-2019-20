@@ -1,10 +1,13 @@
 import java.util.List;
 
-public class Message {
+public class MessageReceive {
 
-    int id; // inutil
-    String sender;
-    List<String> topics;
-    String text;
+    private String sender;
+    private List<String> topics;
+    private String text;
 
+
+    public String toSring() {
+        return sender + ": " + text;
+    }
 }

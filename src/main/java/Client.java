@@ -1,45 +1,68 @@
-
-import Middleware.CausalOrdering.VectorMessage;
-import io.atomix.cluster.messaging.ManagedMessagingService;
-import io.atomix.cluster.messaging.MessagingConfig;
-import io.atomix.cluster.messaging.impl.NettyMessagingService;
-import io.atomix.utils.net.Address;
-import io.atomix.utils.serializer.Serializer;
-
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Scanner;
 
 public class Client {
 
-    private Address server;
-    private ManagedMessagingService mms;
-    //TODO meter um serializer
-    private Serializer s;
+    public static void main(String args[]) {
 
-    public Client(Address address, String cluster, Address server) {
-        this.server = server;
-        this.mms = new NettyMessagingService(
-                cluster,
-                address,
-                new MessagingConfig());
-    }
+        Publisher publisher = new PublisherStub();
 
-    void start() {
+        Scanner scanner = new Scanner(System.in);
 
-        mms.start();
+        while (true) {
+            String input = scanner.nextLine();
+            if (input == null || input.equals("sair")) {
+                System.out.println("Adeus");
+                break;
+            }
 
-        ScheduledExecutorService e = Executors.newScheduledThreadPool(1);
+            String[] cmds = input.split(" ");
 
-        mms.registerHandler("coiso", (a,b)-> {
-            VectorMessage m = s.decode(b);
-            System.out.println("Recebi: " + m);
-        }, e);
-    }
-
-    void send(String msg) {
-        //VectorMessage m = new VectorMessage(mms.address().port(),msg);
-        //System.out.println("Enviei para " + server.port() + ": " + m);
-        //mms.sendAsync(server, "message", s.encode(m));
+            switch (cmds[0].toLowerCase()) {
+                case "help":
+                    System.out.println("getSubs");
+                case "getSubs":
+                    publisher.getSubscriptions().thenAccept(subscriptions -> {
+                        System.out.println("Subscrições:");
+                        for (String s : subscriptions) {
+                            System.out.println(s);
+                        }
+                    });
+                case "get10":
+                    publisher.getLast10().thenAccept(messages -> {
+                        System.out.println("Subscrições:");
+                        for (MessageReceive m : messages) {
+                            System.out.println(m);
+                        }
+                    });
+                case "addSub":
+                    if(cmds.length < 2) {
+                        System.out.println("Argumentos insuficientes");
+                        break;
+                    }
+                    publisher.addSubscription(cmds[1]);
+                case "removeSub":
+                    if(cmds.length < 2) {
+                        System.out.println("Argumentos insuficientes");
+                        break;
+                    }
+                    publisher.removeSubscription(cmds[1]);
+                case "publish":
+                    if(cmds.length < 3) {
+                        System.out.println("Argumentos insuficientes");
+                        break;
+                    }
+                    List<String> topics = new ArrayList<>();
+                    for (int i = 2; i < cmds.length; i++) {
+                        topics.add(cmds[i]);
+                    }
+                    publisher.publish(cmds[1],topics);
+                default:
+                    System.out.println("Comando não reconhecido");
+            }
+        }
+        scanner.close();
     }
 
 }
