@@ -16,7 +16,6 @@ public class CausalOrderHandler<T extends VectorOrdering> {
     private ArrayList<Address> servers;
 
 
-
     public CausalOrderHandler(int id, ManagedMessagingService mms, List<Address> servers){
         this.id = id;
         this.vector = new ArrayList<>();
