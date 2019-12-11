@@ -55,6 +55,8 @@ public class Participant {
                     break;
                 case 'c':
                     //TODO logg
+                    Object op = operations.get(tm.getTransactionId());
+                    //callback.accept(op)
                     System.out.println("Logic.Server " + this.id +" Commited");
                     break;
                 case 'a':
