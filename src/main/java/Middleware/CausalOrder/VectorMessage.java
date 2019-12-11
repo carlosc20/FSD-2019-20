@@ -1,13 +1,14 @@
-package Middleware.CausalOrdering;
+package Middleware.CausalOrder;
 
 import io.atomix.utils.net.Address;
 
 import java.util.List;
 import java.util.ArrayList;
 
-public class VectorMessage<T> implements VectorOrdering, Message {
+public class VectorMessage<T> implements VectorOrdering {
 
     private int id;
+    //TODO pode não ser preciso
     private Address sender;
     private List<Integer> v;
     private T content;

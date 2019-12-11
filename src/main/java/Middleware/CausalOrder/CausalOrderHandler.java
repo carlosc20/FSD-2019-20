@@ -1,20 +1,13 @@
-package Middleware.CausalOrdering;
+package Middleware.CausalOrder;
 
-import Middleware.TwoPhaseCommit.TransactionMessage;
 import io.atomix.cluster.messaging.ManagedMessagingService;
-import io.atomix.cluster.messaging.MessagingConfig;
-import io.atomix.cluster.messaging.impl.NettyMessagingService;
 import io.atomix.utils.net.Address;
 import io.atomix.utils.serializer.Serializer;
-import io.atomix.utils.serializer.SerializerBuilder;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
-import java.util.function.BiConsumer;
-import java.util.function.BiFunction;
 import java.util.function.Consumer;
-
 
 //TODO meter endereços nas vector messages.
 
@@ -24,32 +17,26 @@ public class CausalOrderHandler<T> {
     private List<Integer> vector;
     private Queue<VectorMessage> msgQueue;
     private ManagedMessagingService mms;
-    private ArrayList<Address> servers;
     private Serializer s;
 
-    public CausalOrderHandler(int id, List<Address> servers, Address myAddr){
+    public CausalOrderHandler(int id, int clusterSize, ManagedMessagingService mss, Serializer s){
         this.id = id;
         this.vector = new ArrayList<>();
-        this.mms =  new NettyMessagingService("irr", myAddr, new MessagingConfig());
-        mms.start();
-        this.servers = new ArrayList<>();
-        for(int i = 0; i<servers.size(); i++){
+        for(int i = 0; i<clusterSize; i++){
             this.vector.add(0);
-            // servidores tem de ter id's correspondentes a indices -> 0,1..N
-            if(i+1==id) continue;
-            this.servers.add(servers.get(i));
         }
         this.msgQueue = new LinkedList<>();
-        this.s = new SerializerBuilder()
-                .addType(VectorMessage.class)
-                .addType(List.class)
-                .addType(TransactionMessage.class)
-                .addType(Object.class)
-                .addType(Address.class)
-                .build();
+        this.s = s;
     }
 
-    public void registerHandler(String type, ExecutorService e, BiConsumer<Object, Address> bf){
+    public void registerHandlerRemoveVector(String type, Consumer<Object> callback, ExecutorService e){
+        mms.registerHandler(type, (a,b) ->{
+            VectorMessage msg = s.decode(b);
+            callback.accept(msg.getContent());
+        }, e);
+    }
+
+    public void registerHandler(String type, Consumer<Object> callback, ExecutorService e){
         mms.registerHandler(type, (a, b) -> {
             VectorMessage msg = s.decode(b);
             System.out.println(id + ": Received a msg "+ msg.toString());
@@ -57,8 +44,8 @@ public class CausalOrderHandler<T> {
             if(inOrder(msg)){
                 System.out.println(id + ": inOrder");
                 updateVector(msg);
-                bf.accept(msg.getContent(),a);
-                updateQueue(bf);
+                callback.accept(msg.getContent());
+                updateQueue(callback);
             }
             else{
                 System.out.println(id + ": outOfOrder");
@@ -68,32 +55,18 @@ public class CausalOrderHandler<T> {
         }, e);
     }
 
-    public void registerHandlerMartelado(String type, ExecutorService e, BiConsumer<Object, Address> bf){
-        mms.registerHandler(type, (a, b) -> {
-            VectorMessage msg = s.decode(b);
-            System.out.println(id + ": Received a msg "+ msg.toString());
-            bf.accept(msg.getContent(),a);
-        }, e);
-    }
-
-    public CompletableFuture<Void> sendAsyncMartelado(T content, String type, Address a){
-        VectorMessage msg = new VectorMessage<>(id, vector, content);
-        System.out.println(msg.toString());
-        return mms.sendAsync(a, type, s.encode(msg));
-    }
-
     private void updateVector(VectorMessage msg){
         int id = msg.getId();
         vector.set(id, msg.getIndex(id));
     }
 
-    private void updateQueue(BiConsumer<Object, Address> callback){
+    private void updateQueue(Consumer<Object> callback){
         Iterator<VectorMessage> iter = msgQueue.iterator();
         while (iter.hasNext()){
             VectorMessage msg = iter.next();
             if(inOrder(msg)){
                 updateVector(msg);
-                callback.accept(msg.getContent(), msg.getSender());
+                callback.accept(msg.getContent());
                 iter.remove();
                 updateQueue(callback);
                 return;
@@ -124,30 +97,15 @@ public class CausalOrderHandler<T> {
         return new VectorMessage<>(id, vector, content);
     }
 
-    // TESTES
-    public CausalOrderHandler(int id, int numPeers){
-        this.id = id;
-        this.vector = new ArrayList<>();
-        for(int i = 0; i<numPeers; i++)
-            this.vector.add(0);
-        this.msgQueue = new LinkedList<>();
-    }
-
-    public void sendToCluster(String msg) {
-        vector.set(id, vector.get(id) + 1);
-        VectorMessage m = new VectorMessage(id, vector);
-        for (Address a : servers)
-            mms.sendAsync(a, "vectorMessage", s.encode(m));
-    }
     //TODO não sei se serve de algo ter CF aqui
-    public CompletableFuture<Void> sendAsyncToCluster(T content, String type) {
+    public CompletableFuture<Void> sendAsyncToCluster(List<Address> servers, String type, T content) {
         VectorMessage<T> msg = createMsg(content);
         for (Address a : servers)
             mms.sendAsync(a, type, s.encode(msg));
         return CompletableFuture.completedFuture(null);
     }
 
-    public CompletableFuture<Void> sendAsync(T content, String type, Address a){
+    public CompletableFuture<Void> sendAsync( Address a, String type, T content){
         VectorMessage msg = createMsg(content);
         System.out.println(msg.toString());
         return mms.sendAsync(a, type, s.encode(msg));

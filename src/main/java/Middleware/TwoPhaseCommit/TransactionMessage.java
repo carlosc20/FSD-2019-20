@@ -1,37 +1,33 @@
 package Middleware.TwoPhaseCommit;
 
 public class TransactionMessage  {
-    private int messageId;
-    private int transactionId;
+    private Identifier transactionId;
     private char type;
     private Object content;
 
     public TransactionMessage(){
-        this.messageId = -1;
-        this.transactionId = -1;
+        this.transactionId = new Identifier();
         this.type = 'b';
         this.content = null;
     }
 
-    public TransactionMessage(int messageId, int transactionId, char response){
-        this.messageId = messageId;
+    public TransactionMessage(Identifier transactionId, char type){
         this.transactionId = transactionId;
-        this.type = response;
+        this.type = type;
         this.content = null;
     }
 
-    public TransactionMessage(int messageId, int transactionId, char response, Object content){
-        this.messageId = messageId;
+    public TransactionMessage(Identifier transactionId, char type, Object content){
         this.transactionId = transactionId;
-        this.type = response;
+        this.type = type;
         this.content = content;
     }
 
-    public int getTransactionId() {
+    public Identifier getTransactionId() {
         return transactionId;
     }
 
-    public void setTransactionId(int transactionId) {
+    public void setTransactionId(Identifier transactionId) {
         this.transactionId = transactionId;
     }
 
@@ -51,19 +47,10 @@ public class TransactionMessage  {
         this.content = content;
     }
 
-    public int getMessageId() {
-        return messageId;
-    }
-
-    public void setMessageId(int messageId) {
-        this.messageId = messageId;
-    }
-
     @Override
     public String toString() {
         String content = this.content == null ? "null" : this.content.toString();
         return "TransactionMessage{" +
-                " mId= " + this.messageId +
                 " tId= " + this.transactionId +
                 " type= " + this.type +
                 " content= " + content +

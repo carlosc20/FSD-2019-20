@@ -1,3 +1,5 @@
+package Logic;
+
 public class ServerTest {
     public static void main(String[] args) {
 /*
@@ -9,7 +11,7 @@ public class ServerTest {
         }
 
         for(int i = 0; i < n; i++) {
-            Server s = new Server(i, servers, Address.from(port + i), "Cluster");
+            Logic.Server s = new Logic.Server(i, servers, Address.from(port + i), "Cluster");
             s.start();
             if(i == n - 1) s.send("Teste");
         }

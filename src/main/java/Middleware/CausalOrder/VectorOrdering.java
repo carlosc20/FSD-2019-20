@@ -1,4 +1,4 @@
-package Middleware.CausalOrdering;
+package Middleware.CausalOrder;
 
 import java.util.List;
 

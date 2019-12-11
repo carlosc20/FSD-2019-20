@@ -1,15 +1,4 @@
-import Middleware.CausalOrdering.CausalOrderHandler;
-import Middleware.CausalOrdering.VectorMessage;
-import io.atomix.cluster.messaging.ManagedMessagingService;
-import io.atomix.cluster.messaging.MessagingConfig;
-import io.atomix.cluster.messaging.impl.NettyMessagingService;
-import io.atomix.utils.net.Address;
-import io.atomix.utils.serializer.Serializer;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+package Logic;
 
 public class Server {
 /*
@@ -19,9 +8,9 @@ public class Server {
     private ManagedMessagingService mms;
     private CausalOrderHandler coh;
     //TODO meter um serializer
-    private Serializer s;
+    private GlobalSerializer s;
 
-    public Server(int id, List<Address> servers, Address address, String cluster){
+    public Logic.Server(int id, List<Address> servers, Address address, String cluster){
         c = Executors.newFixedThreadPool(1);
         e = Executors.newFixedThreadPool(1);
         users = new ArrayList<>();

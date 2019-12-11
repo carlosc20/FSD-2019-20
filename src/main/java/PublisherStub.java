@@ -1,4 +1,4 @@
-import Middleware.CausalOrdering.MessagingService;
+import Middleware.MessagingService;
 import io.atomix.utils.net.Address;
 import io.atomix.utils.serializer.Serializer;
 import io.atomix.utils.serializer.SerializerBuilder;

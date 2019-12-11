@@ -1,4 +1,4 @@
-package Middleware.CausalOrdering;
+package Middleware;
 
 import io.atomix.cluster.messaging.ManagedMessagingService;
 import io.atomix.cluster.messaging.MessagingConfig;
