@@ -15,19 +15,22 @@ public class PublisherStub implements Publisher {
         .addType(String.class)
         .build();
 
-    public PublisherStub() {
-        ms = new MessagingService(Address.from(12345), Address.from(12346));
+    public PublisherStub(Address server) {
+        int port = 12345;
+        ms = new MessagingService(server, Address.from(port));
         ms.start();
     }
 
     @Override
-    public boolean login(String username, String password) {
-        return false;
+    public CompletableFuture<Boolean> login(String username, String password) {
+        MessageAuth message = new MessageAuth(username, password);
+        return ms.sendAndReceive(s.encode(message),"login").thenCompose(s::decode);
     }
 
     @Override
-    public void register(String username, String password) {
-
+    public CompletableFuture<Boolean> register(String username, String password) {
+        MessageAuth message = new MessageAuth(username, password);
+        return ms.sendAndReceive(s.encode(message),"register").thenCompose(s::decode);
     }
 
     @Override
