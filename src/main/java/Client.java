@@ -35,7 +35,8 @@ public class Client {
                     publisher.login(cmds[1],cmds[2]).thenAccept(success ->  {
                         if(success) {
                             System.out.println("Login efetuado com sucesso");
-                            session(scanner, publisher);
+                            Session session = new SessionStub(Address.from(port));
+                            session(scanner, publisher, session);
                         }
                         else System.out.println("Login falhou");
                     });
@@ -55,7 +56,7 @@ public class Client {
         scanner.close();
     }
 
-    private static void session(Scanner scanner, Publisher publisher) {
+    private static void session(Scanner scanner, Publisher publisher, Session session) {
 
         while (true) {
             String input = scanner.nextLine();
@@ -73,14 +74,14 @@ public class Client {
                     System.out.println("removeSub <sub>");
                     System.out.println("publish <text> <tag1> <tag2>...");
                 case "getSubs":
-                    publisher.getSubscriptions().thenAccept(subscriptions -> {
+                    session.getSubscriptions().thenAccept(subscriptions -> {
                         System.out.println("Subscrições:");
                         for (String s : subscriptions) {
                             System.out.println(s);
                         }
                     });
                 case "get10":
-                    publisher.getLast10().thenAccept(messages -> {
+                    session.getLast10().thenAccept(messages -> {
                         System.out.println("Subscrições:");
                         for (MessageReceive m : messages) {
                             System.out.println(m);
@@ -91,13 +92,13 @@ public class Client {
                         System.out.println("Argumentos insuficientes");
                         break;
                     }
-                    publisher.addSubscription(cmds[1]);
+                    session.addSubscription(cmds[1]);
                 case "removeSub":
                     if (cmds.length < 2) {
                         System.out.println("Argumentos insuficientes");
                         break;
                     }
-                    publisher.removeSubscription(cmds[1]);
+                    session.removeSubscription(cmds[1]);
                 case "publish":
                     if (cmds.length < 3) {
                         System.out.println("Argumentos insuficientes");
@@ -107,7 +108,7 @@ public class Client {
                     for (int i = 2; i < cmds.length; i++) {
                         topics.add(cmds[i]);
                     }
-                    publisher.publish(cmds[1], topics);
+                    session.publish(cmds[1], topics);
                 default:
                     System.out.println("Comando não reconhecido");
             }
