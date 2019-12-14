@@ -91,9 +91,6 @@ public class Server {
     }
 
     //Testes .........----------------//--------------.........
-    public static class Msg {
-        int a; String b;
-    }
     public void startListeningToText(){
         sms.start();
         sms.registerOperation("spreadText", (a,b)->{

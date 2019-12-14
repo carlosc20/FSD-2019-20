@@ -38,7 +38,6 @@ public class ServerMessagingService {
             if(i==id) continue;
             this.participants.add(participants.get(i));
         }
-        this.participants = participants;
         this.coh = new CausalOrderHandler(id, pSize, s);
 
     }
