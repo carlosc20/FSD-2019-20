@@ -1,3 +1,5 @@
+package Middleware;
+
 public class MessageAuth {
 
     private String username;
@@ -14,5 +16,13 @@ public class MessageAuth {
 
     public String getPassword() {
         return password;
+    }
+
+    @Override
+    public String toString() {
+        return "Middleware.MessageAuth{" +
+                "username='" + username + '\'' +
+                ", password='" + password + '\'' +
+                '}';
     }
 }

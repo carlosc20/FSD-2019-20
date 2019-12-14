@@ -8,20 +8,18 @@ import io.atomix.utils.serializer.SerializerBuilder;
 
 import java.util.List;
 
+
+//TODO pode vir a ser custom
 public class GlobalSerializer {
-    private Serializer s;
+    Serializer s;
 
     public GlobalSerializer(){
         s = new SerializerBuilder()
                 .addType(VectorMessage.class)
                 .addType(List.class)
                 .addType(TransactionMessage.class)
-                .addType(Object.class)
                 .addType(Address.class)
+                .addType(MessageAuth.class)
                 .build();
-    }
-
-    public Serializer getS() {
-        return s;
     }
 }

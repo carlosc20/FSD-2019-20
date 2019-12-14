@@ -7,15 +7,14 @@ import io.atomix.utils.net.Address;
 
 import java.util.concurrent.CompletableFuture;
 
-public class MessagingService {
-
+public class ClientMessagingService {
     private ManagedMessagingService mms;
     private Address server;
 
-    public MessagingService(Address server, Address address){
+    public ClientMessagingService(Address server, Address address){
         this.server = server;
         mms = new NettyMessagingService(
-                "irrelevante",
+                "client",
                 address,
                 new MessagingConfig());
     }

@@ -17,9 +17,10 @@ import java.util.function.BiConsumer;
 //TODO relógio adicional no cliente para saber o que já leu
 //TODO PERGUNTAR AO CÉSAR COMO É QUE EXECUTA TRANSAÇÕES RECUPERADAS
 public class Manager {
+    /*
     private int id;
     private int numTransactions;
-    private Map<Identifier, TransactionState> transactions;
+    private Map<, TransactionState> transactions;
     private List<Address> staticParticipants;
     private Logger l;
     private ManagedMessagingService mms;
@@ -102,4 +103,5 @@ public class Manager {
 
     //TODO arranjar maneira de a não confirmação de uma transação não bloquear outras transações
     //public ... recover(file...)
+    */
 }
