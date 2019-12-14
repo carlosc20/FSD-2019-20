@@ -39,6 +39,8 @@ public class ServerMessagingService {
             this.participants.add(participants.get(i));
         }
         this.coh = new CausalOrderHandler(id, pSize, s);
+        List<Integer> vector = this.coh.recover();
+        //do something with vector if size != 0
 
     }
 

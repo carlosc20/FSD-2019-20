@@ -14,9 +14,10 @@ public class Logger {
     private SegmentedJournalWriter<Object> w;
     private SegmentedJournalReader<Object> r;
 
-    public Logger(String name, Serializer s) {
+    public Logger(String directory, String name, Serializer s) {
         this.sj = SegmentedJournal.builder()
                 .withName(name)
+                .withDirectory(directory)
                 .withSerializer(s)
                 .build();
         this.w = sj.writer();

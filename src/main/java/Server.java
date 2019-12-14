@@ -1,6 +1,9 @@
+import Middleware.GlobalSerializer;
+import Middleware.Logging.Logger;
 import Middleware.MessageAuth;
 import Middleware.ServerMessagingService;
 import io.atomix.utils.net.Address;
+import io.atomix.utils.serializer.Serializer;
 
 import java.util.*;
 
@@ -11,6 +14,8 @@ public class Server {
     private Publisher publisher;
     private Map<Address,Session> sessions;
     private Feed feed;
+    private Serializer s;
+    private HashMap<String, Logger> loggers;
 
 
     public Server(int id, Address address, List<Address> servers){
@@ -19,6 +24,13 @@ public class Server {
          this.publisher = new PublisherImpl();
          this.sessions = new HashMap<>();
          this.feed = new Feed();
+         this.s = new GlobalSerializer().getS();
+         this.loggers = new HashMap<>();
+         //TODO loggs
+         //this.loggers.put("Users", new Logger("Users", s));
+         //this.loggers.put("Publishes", new Logger("Publishes", s));
+         //este não sei de dá para ter
+         //this.loggers.put("Sessions", new Logger("Sessions", s));
     }
 
     public void start(){
@@ -97,7 +109,6 @@ public class Server {
             System.out.println(id + ": received spread request ratatataTa");
             sms.sendAsyncToCluster("text", sms.decode(b));
         });
-        //Recebe dele próprio não sei pq caralho. Se não der para resolver inserir tudo neste lado
         sms.registerOperation("text", (a,b)->{
             MessageAuth ma = sms.decode(b);
             System.out.println(id + ": received: " + ma.toString() + " from " + a.toString());

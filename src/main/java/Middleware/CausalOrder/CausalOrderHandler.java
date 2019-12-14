@@ -1,5 +1,6 @@
 package Middleware.CausalOrder;
 
+import Middleware.Logging.Logger;
 import io.atomix.cluster.messaging.ManagedMessagingService;
 import io.atomix.utils.net.Address;
 import io.atomix.utils.serializer.Serializer;
@@ -17,6 +18,8 @@ public class CausalOrderHandler {
     private List<Integer> vector;
     private Queue<VectorMessage> msgQueue;
     private Serializer s;
+    private Logger logVector;
+    private Logger logQueue;
 
     public CausalOrderHandler(int id, int clusterSize, Serializer s){
         this.id = id;
@@ -26,6 +29,29 @@ public class CausalOrderHandler {
         }
         this.msgQueue = new LinkedList<>();
         this.s = s;
+        this.logVector = new Logger("causalOrderLogs","Vector", s);
+        this.logQueue = new Logger("causalOrderLogs","Queue", s);
+    }
+
+    public List<Integer> recover(){
+        ArrayList<Object> vectors = logVector.recover();
+        if(vectors.size() != 0){
+            ArrayList<Integer> vector = (ArrayList<Integer>) vectors.get(vectors.size() - 1);
+            this.vector = vector;
+            ArrayList<Object> queue = logQueue.recover();
+            recoverQueue(queue);
+        }
+        return vector;
+    }
+
+    private void recoverQueue(ArrayList<Object> queue){
+        Iterator<Object> it = queue.iterator();
+        while(it.hasNext()){
+            VectorMessage vm = (VectorMessage) it.next();
+            if(!inOrder(vm)){
+                this.msgQueue.add(vm);
+            }
+        }
     }
 
     public void read(byte[] b, Consumer<Object> callback){
@@ -40,6 +66,7 @@ public class CausalOrderHandler {
         }
         else{
             System.out.println(id + ": outOfOrder");
+            logQueue.write(msg);
             msgQueue.add(msg);
         }
     }
@@ -47,6 +74,7 @@ public class CausalOrderHandler {
     private void updateVector(VectorMessage msg){
         int id = msg.getId();
         vector.set(id, msg.getIndex(id));
+        logVector.write(vector);
     }
 
     private void updateQueue(Consumer<Object> callback){
@@ -83,6 +111,7 @@ public class CausalOrderHandler {
 
     public byte[] createMsg(Object content) {
         vector.set(id, vector.get(id) + 1); // incrementa vetor local
+        logVector.write(vector);
         VectorMessage vm = new VectorMessage<>(id, vector, content);
         return s.encode(vm);
     }
