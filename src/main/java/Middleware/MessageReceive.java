@@ -2,13 +2,14 @@ package Middleware;
 
 import java.util.List;
 
-public class MessageReceive {
+public class MessageReceive extends MessageAuth {
 
     private String sender;
     private List<String> topics;
     private String text;
 
-    public MessageReceive(String sender, List<String> topics, String text) {
+    public MessageReceive(String username, String password, String sender, List<String> topics, String text) {
+        super(username, password);
         this.sender = sender;
         this.topics = topics;
         this.text = text;

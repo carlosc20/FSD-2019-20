@@ -2,12 +2,13 @@ package Middleware;
 
 import java.util.List;
 
-public class MessageSend {
+public class MessageSend extends MessageAuth {
 
     private List<String> topics;
     private String text;
 
-    public MessageSend(List<String> topics, String text) {
+    public MessageSend(String username, String password, List<String> topics, String text) {
+        super(username, password);
         this.topics = topics;
         this.text = text;
     }
