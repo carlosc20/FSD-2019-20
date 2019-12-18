@@ -1,4 +1,4 @@
-package Middleware;
+package Middleware.Marshalling;
 
 
 public class MessageSub extends MessageAuth {

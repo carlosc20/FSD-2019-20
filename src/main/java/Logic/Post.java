@@ -1,3 +1,5 @@
+package Logic;
+
 import java.util.List;
 
 public class Post {

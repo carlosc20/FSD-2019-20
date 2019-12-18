@@ -1,6 +1,9 @@
+import Logic.Publisher;
+import Logic.PublisherImpl;
+import Logic.User;
 import Middleware.GlobalSerializer;
 import Middleware.Logging.Logger;
-import Middleware.MessageAuth;
+import Middleware.Marshalling.MessageAuth;
 import Middleware.ServerMessagingService;
 import io.atomix.utils.net.Address;
 import io.atomix.utils.serializer.Serializer;
@@ -73,7 +76,7 @@ public class Server {
         sms.registerOperation("clientLogin", (a,b)->{
             MessageAuth msg = sms.decode(b);
             //TODO
-            //User u = publisher.getUser();
+            //Logic.User u = publisher.getUser();
             User u = null;
             if(u !=null){
                 Session session = new SessionImpl(feed, u);

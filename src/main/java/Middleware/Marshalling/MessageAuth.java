@@ -1,4 +1,4 @@
-package Middleware;
+package Middleware.Marshalling;
 
 public class MessageAuth {
 
@@ -20,7 +20,7 @@ public class MessageAuth {
 
     @Override
     public String toString() {
-        return "Middleware.MessageAuth{" +
+        return "Middleware.Marshalling.MessageAuth{" +
                 "username='" + username + '\'' +
                 ", password='" + password + '\'' +
                 '}';

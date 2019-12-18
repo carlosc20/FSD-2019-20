@@ -1,6 +1,7 @@
 package Middleware;
 
 import Middleware.CausalOrder.VectorMessage;
+import Middleware.Marshalling.MessageAuth;
 import Middleware.TwoPhaseCommit.TransactionMessage;
 import io.atomix.utils.net.Address;
 import io.atomix.utils.serializer.Serializer;
