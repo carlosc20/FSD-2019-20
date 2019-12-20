@@ -1,7 +1,5 @@
 package Logic;
 
-import Middleware.Marshalling.MessageReceive;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -11,7 +9,7 @@ public class PublisherImpl implements Publisher {
 
     private HashMap<String, User> users;
 
-    private HashMap<String, List<Post>> posts;
+    private HashMap<String, CircularArray<Post>> posts;
 
 
 
@@ -19,7 +17,7 @@ public class PublisherImpl implements Publisher {
         this.users = new HashMap<>();
         this.posts = new HashMap<>();
         for(String topic: topics) {
-            posts.put(topic, new ArrayList<>());
+            posts.put(topic, new CircularArray<>(10));
         }
     }
 
@@ -56,8 +54,7 @@ public class PublisherImpl implements Publisher {
             List<String> subs = user.getSubscriptions();
             ArrayList<Post> a = new ArrayList<>(subs.size() * n);
             for(String sub: subs) {
-                List<Post> l = posts.get(sub);
-                a.addAll(l.subList(l.size() - n, l.size()));
+                a.addAll(posts.get(sub).getAll());
             }
             // TODO sort com comparator por id
             return CompletableFuture.completedFuture(a.subList(a.size() - n, a.size()));
@@ -82,7 +79,7 @@ public class PublisherImpl implements Publisher {
             // TODO calcular id
             Post post = new Post(0, username, text, topics);
             for(String topic: topics) {
-                List<Post> l = posts.get(topic);
+                CircularArray<Post> l = posts.get(topic);
                 if(l != null)
                     l.add(post);
             }
