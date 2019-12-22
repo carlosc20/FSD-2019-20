@@ -6,8 +6,9 @@ import io.atomix.storage.journal.SegmentedJournalReader;
 import io.atomix.storage.journal.SegmentedJournalWriter;
 import io.atomix.utils.serializer.Serializer;
 
-import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
 
 public class Logger {
     private SegmentedJournal<Object> sj;
@@ -28,31 +29,29 @@ public class Logger {
         CompletableFuture.supplyAsync(() -> {
             w.flush();
             return null;
-        }).thenRun(() -> {
-            w.close();
-        });
+        }).thenRun(() -> w.close());
     }
 
-    public ArrayList<Object> recover() {
-        ArrayList<Object> actions = new ArrayList<>();
+    public void recover(Consumer<Object> callback) {
         r = sj.openReader(0);
         while (r.hasNext()) {
             Indexed<Object> e = r.next();
-            actions.add(e.entry());
-            System.out.println(e.index()+": "+e.entry());
+            callback.accept(e.entry());
+            System.out.println("Retrived from loggs " + e.index()+": "+e.entry());
         }
         r.close();
-        return actions;
     }
 
-    public ArrayList<Object> recover(int index) {
-        ArrayList<Object> actions = new ArrayList<>();
-        r = sj.openReader(index);
+    public Object recoverLast() {
+        Object o = null;
+        int last = sj.maxEntrySize()-1;
+        r = sj.openReader(last);
         while (r.hasNext()) {
             Indexed<Object> e = r.next();
-            actions.add(e.entry());
+            o = e.entry();
+            System.out.println("Retrived from loggs " + e.index()+": "+e.entry());
         }
         r.close();
-        return actions;
+        return o;
     }
 }

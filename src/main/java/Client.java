@@ -1,5 +1,5 @@
+import Logic.Post;
 import Logic.Publisher;
-import Middleware.Marshalling.MessageReceive;
 import io.atomix.utils.net.Address;
 
 import java.util.ArrayList;
@@ -84,7 +84,7 @@ public class Client {
                 case "get10":
                     publisher.getLast10(username, password).thenAccept(messages -> {
                         System.out.println("Subscrições:");
-                        for (MessageReceive m : messages) {
+                        for (Post m : messages) {
                             System.out.println(m);
                         }
                     });

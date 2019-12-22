@@ -1,7 +1,7 @@
+import Logic.Post;
 import Logic.Publisher;
 import Middleware.*;
 import Middleware.Marshalling.MessageAuth;
-import Middleware.Marshalling.MessageReceive;
 import Middleware.Marshalling.MessageSend;
 import Middleware.Marshalling.MessageSub;
 import io.atomix.utils.net.Address;
@@ -63,7 +63,7 @@ public class PublisherStub implements Publisher {
     }
 
     @Override
-    public CompletableFuture<List<MessageReceive>> getLast10(String username, String password) {
+    public CompletableFuture<List<Post>> getLast10(String username, String password) {
         MessageAuth msg = new MessageAuth(username, password);
         return ms.sendAndReceive(s.encode(msg),"get10").thenCompose(s::decode);
     }

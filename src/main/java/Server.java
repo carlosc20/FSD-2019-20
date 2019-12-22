@@ -1,48 +1,41 @@
 import Logic.Publisher;
-import Logic.PublisherImpl;
 import Logic.User;
 import Middleware.GlobalSerializer;
-import Middleware.Logging.Logger;
 import Middleware.Marshalling.MessageAuth;
+import Middleware.Recovery;
 import Middleware.ServerMessagingService;
 import io.atomix.utils.net.Address;
 import io.atomix.utils.serializer.Serializer;
 
 import java.util.*;
 
-
 public class Server {
     private int id; //para debug
     private ServerMessagingService sms;
     private Publisher publisher;
-    private Map<Address,Session> sessions;
-    private Feed feed;
     private Serializer s;
-    private HashMap<String, Logger> loggers;
-
+    private Recovery r;
 
     public Server(int id, Address address, List<Address> servers){
          this.id = id;
          this.sms = new ServerMessagingService(id, address, servers);
-         this.publisher = new PublisherImpl();
-         this.sessions = new HashMap<>();
-         this.feed = new Feed();
+         //this.publisher = new PublisherImpl();
          this.s = new GlobalSerializer().getS();
-         this.loggers = new HashMap<>();
-         //TODO loggs
+         this.r = new Recovery(sms);
+         //this.loggers = new HashMap<>();
          //this.loggers.put("Users", new Logger("Users", s));
          //this.loggers.put("Publishes", new Logger("Publishes", s));
-         //este não sei de dá para ter
-         //this.loggers.put("Sessions", new Logger("Sessions", s));
     }
 
     public void start(){
-        sms.start();
+       // sms.start();
         startListeningToLogins();
         startListeningToRegisters();
         startListeningToPublishes();
         startListeningToSubscriptions();
         startListeningToGetSubs();
+        //TODO
+        r.start(x -> {});
     }
 
     //Receção de tópicos
@@ -79,8 +72,8 @@ public class Server {
             //Logic.User u = publisher.getUser();
             User u = null;
             if(u !=null){
-                Session session = new SessionImpl(feed, u);
-                sessions.put(a,session);
+                //Session session = new SessionImpl(feed, u);
+                //sessions.put(a,session);
                 sms.sendAsyncToCluster("login", sms.encode(publisher.login(msg.getUsername(), msg.getPassword())));
                 return sms.encode(true);
             }
@@ -100,43 +93,39 @@ public class Server {
 
     private void startListeningToGetSubs(){
         sms.registerOperation("getSubs", (a,b)->{
-            Session session = sessions.get(a);
-            return sms.encode(session.getSubscriptions());
+            //Session session = sessions.get(a);
+            //return sms.encode(session.getSubscriptions());
         });
     }
 
     //Testes .........----------------//--------------.........
     public void startListeningToText(){
-        sms.start();
         sms.registerOperation("spreadText", (a,b)->{
             System.out.println(id + ": received spread request ratatataTa");
-            sms.sendAsyncToCluster("text", sms.decode(b));
+            sms.sendCausalOrderAsyncToCluster("text", b);
         });
-        sms.registerOperation("text", (a,b)->{
-            MessageAuth ma = sms.decode(b);
-            System.out.println(id + ": received: " + ma.toString() + " from " + a.toString());
-        });
+        sms.registerOrderedOperation("text", msg->
+            System.out.println(id + ": received: " + msg.toString() + " from " + msg.toString()));
+        r.start(x -> {});
     }
 
     public void send(String text, Address a){
-        //tentei enviar só String e apareciam bytes aleatórios...passa-se com cenas primitivas ao que parece
         MessageAuth ma = new MessageAuth("boi", "123");
         sms.send(a, ma, "spreadText");
+        System.out.println("Client sending hello");
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws InterruptedException {
         ArrayList<Address> addresses = new ArrayList<>();
         for(int i = 0; i<4; i++){
             addresses.add(Address.from("localhost",10000 + i));
         }
-        Server s1 = new Server(0, addresses.get(0), addresses);
+        int id = Integer.parseInt(new Scanner(System.in).nextLine());
+        Thread.sleep(10000);
+        Server s1 = new Server(id, addresses.get(id), addresses);
         s1.startListeningToText();
-        Server s2 = new Server(1, addresses.get(1), addresses);
-        s2.startListeningToText();
-        Server s3 = new Server(2, addresses.get(2), addresses);
-        s3.startListeningToText();
-        Server s4 = new Server(3, addresses.get(3), addresses);
-        s4.startListeningToText();
-        s1.send("Olá", addresses.get(1));
+        if(id == 0){
+            s1.send("Olá", addresses.get(1));
+            Thread.sleep(10000);}
     }
 }

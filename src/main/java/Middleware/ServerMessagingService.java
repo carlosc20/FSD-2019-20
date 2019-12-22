@@ -1,12 +1,15 @@
 package Middleware;
 
 import Middleware.CausalOrder.CausalOrderHandler;
+import Middleware.Logging.Logger;
+import Middleware.Marshalling.MessageRecovery;
 import io.atomix.cluster.messaging.ManagedMessagingService;
 import io.atomix.cluster.messaging.MessagingConfig;
 import io.atomix.cluster.messaging.impl.NettyMessagingService;
 import io.atomix.utils.net.Address;
 import io.atomix.utils.serializer.Serializer;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -17,18 +20,21 @@ import java.util.function.BiFunction;
 import java.util.function.Consumer;
 
 public class ServerMessagingService {
+    private int id;
+    CausalOrderHandler coh;
     private ExecutorService e;
     private ManagedMessagingService mms;
-    private CausalOrderHandler coh;
     private Serializer s;
     private List<Address> participants;
 
     public ServerMessagingService(int id, Address address, List<Address> participants){
+        this.id = id;
         this.e = Executors.newFixedThreadPool(1);
         this.mms = new NettyMessagingService(
                 "server",
                 address,
                 new MessagingConfig());
+        mms.start();
         this.s = new GlobalSerializer().s;
         this.participants = new ArrayList<>();
 
@@ -39,14 +45,11 @@ public class ServerMessagingService {
             this.participants.add(participants.get(i));
         }
         this.coh = new CausalOrderHandler(id, pSize, s);
-        List<Integer> vector = this.coh.recover();
-        //do something with vector if size != 0
-
     }
 
-    public void start(){
-        mms.start();
-    }
+    //public void start(){
+      //  mms.start();
+    //}
 
     public void registerOperation(String type, BiConsumer<Address,byte[]> callback){
         mms.registerHandler(type, callback, e);
@@ -58,16 +61,16 @@ public class ServerMessagingService {
 
     public void registerOrderedOperation(String name, Consumer<Object> callback){
         mms.registerHandler(name, (a,b) -> {
-            coh.read(b, o->{
-                callback.accept(s.encode(o));
-            });
+            coh.read(b, o-> callback.accept(s.encode(o)));
         },e);
     }
 
     public CompletableFuture<Void> sendCausalOrderAsyncToCluster(String type, Object content) {
         byte[] toSend = coh.createMsg(content);
-        for (Address a : participants)
-            mms.sendAsync(a, type, toSend);
+        for (Address a : participants){
+            mms.sendAsync(a, type, toSend)
+                    .thenAccept(x -> coh.logInOrderOperation(toSend));
+        }
         return CompletableFuture.completedFuture(null);
     }
 
@@ -75,6 +78,23 @@ public class ServerMessagingService {
         for (Address a : participants)
             mms.sendAsync(a, type, s.encode(content));
         return CompletableFuture.completedFuture(null);
+    }
+
+    public CompletableFuture<Void> sendAndReceiveForRecovery(String type, List<Integer> vector, Duration timout){
+        //List<CompletableFuture<Void>> cfs = new ArrayList<>();
+        //TODO resolver
+        int i = 0;
+        for(Address a : participants){
+            MessageRecovery mr = new MessageRecovery(id, vector.get(i));
+            mms.sendAndReceive(a, type, s.encode(mr), timout, e)
+                .thenAccept(b -> System.out.println((boolean)s.decode(b)));
+            i++;
+        }
+        return CompletableFuture.completedFuture(null);
+    }
+
+    public void sendOldOperation(Address address, byte[] msg, String type){
+        mms.sendAsync(address, type, msg);
     }
 
     public <T> byte[] encode(T object){

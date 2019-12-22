@@ -2,6 +2,9 @@ package Middleware;
 
 import Middleware.CausalOrder.VectorMessage;
 import Middleware.Marshalling.MessageAuth;
+import Middleware.Marshalling.MessageRecovery;
+import Middleware.Marshalling.MessageSend;
+import Middleware.Marshalling.MessageSub;
 import Middleware.TwoPhaseCommit.TransactionMessage;
 import io.atomix.utils.net.Address;
 import io.atomix.utils.serializer.Serializer;
@@ -23,6 +26,9 @@ public class GlobalSerializer {
                 .addType(TransactionMessage.class)
                 .addType(Address.class)
                 .addType(MessageAuth.class)
+                .addType(MessageSend.class)
+                .addType(MessageSub.class)
+                .addType(MessageRecovery.class)
                 .build();
     }
 
