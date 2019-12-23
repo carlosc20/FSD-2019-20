@@ -1,7 +1,9 @@
 package Middleware;
 
 import Middleware.CausalOrder.CausalOrderHandler;
+import Middleware.CausalOrder.VectorMessage;
 import Middleware.Logging.Logger;
+import Middleware.Marshalling.MessageAuth;
 import Middleware.Marshalling.MessageRecovery;
 import io.atomix.cluster.messaging.ManagedMessagingService;
 import io.atomix.cluster.messaging.MessagingConfig;
@@ -27,7 +29,7 @@ public class ServerMessagingService {
     private Serializer s;
     private List<Address> participants;
 
-    public ServerMessagingService(int id, Address address, List<Address> participants){
+    public ServerMessagingService(int id, Address address, List<Address> participants, Logger log){
         this.id = id;
         this.e = Executors.newFixedThreadPool(1);
         this.mms = new NettyMessagingService(
@@ -44,7 +46,7 @@ public class ServerMessagingService {
             if(i==id) continue;
             this.participants.add(participants.get(i));
         }
-        this.coh = new CausalOrderHandler(id, pSize, s);
+        this.coh = new CausalOrderHandler(id, pSize, s, log);
     }
 
     //public void start(){
@@ -61,20 +63,24 @@ public class ServerMessagingService {
 
     public void registerOrderedOperation(String name, Consumer<Object> callback){
         mms.registerHandler(name, (a,b) -> {
-            coh.read(b, o-> callback.accept(s.encode(o)));
+            coh.read(0, b, o-> callback.accept(o));
         },e);
     }
 
-    public CompletableFuture<Void> sendCausalOrderAsyncToCluster(String type, Object content) {
-        byte[] toSend = coh.createMsg(content);
+    public CompletableFuture<Void> sendCausalOrderAsyncToCluster(String type, byte[] content) {
+        System.out.println("sms:sendCausalOrderAsyncToCluster ->");
+        Object o = s.decode(content);
+        byte[] toSend = coh.createMsg(o);
         for (Address a : participants){
-            mms.sendAsync(a, type, toSend)
-                    .thenAccept(x -> coh.logInOrderOperation(toSend));
+            mms.sendAsync(a, type, toSend);
         }
+        //TODO por ao fim de tudo allOf()...talvez
+        coh.logAndSaveNonAckedOperation(toSend);
         return CompletableFuture.completedFuture(null);
     }
 
     public CompletableFuture<Void> sendAsyncToCluster(String type, Object content) {
+        System.out.println("sms:sendAsyncToCluster ->");
         for (Address a : participants)
             mms.sendAsync(a, type, s.encode(content));
         return CompletableFuture.completedFuture(null);
@@ -83,6 +89,7 @@ public class ServerMessagingService {
     public CompletableFuture<Void> sendAndReceiveForRecovery(String type, List<Integer> vector, Duration timout){
         //List<CompletableFuture<Void>> cfs = new ArrayList<>();
         //TODO resolver
+        System.out.println("sms:sendAndReceiveForRecovery ->");
         int i = 0;
         for(Address a : participants){
             MessageRecovery mr = new MessageRecovery(id, vector.get(i));
@@ -93,8 +100,10 @@ public class ServerMessagingService {
         return CompletableFuture.completedFuture(null);
     }
 
-    public void sendOldOperation(Address address, byte[] msg, String type){
-        mms.sendAsync(address, type, msg);
+    public void sendOldOperation(Address address, VectorMessage msg, String type){
+        System.out.println("DEBUG MESSAGE");
+        System.out.println(msg.toString());
+        mms.sendAsync(address, type, s.encode(msg));
     }
 
     public <T> byte[] encode(T object){
@@ -107,6 +116,7 @@ public class ServerMessagingService {
 
     //DEBUG
     public void send(Address address, Object msg, String type){
+        System.out.println("sms:send ->");
         mms.sendAsync(address, type, s.encode(msg));
     }
 

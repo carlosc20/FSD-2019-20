@@ -20,4 +20,12 @@ public class MessageSend extends MessageAuth {
     public String getText() {
         return text;
     }
+
+    @Override
+    public String toString() {
+        return "MessageSend{" +
+                "topics=" + topics +
+                ", text='" + text + '\'' +
+                '}';
+    }
 }

@@ -23,6 +23,7 @@ public class GlobalSerializer {
                 .addType(VectorMessage.class)
                 .addType(List.class)
                 .addType(ArrayList.class)
+                .addType(byte[].class)
                 .addType(TransactionMessage.class)
                 .addType(Address.class)
                 .addType(MessageAuth.class)

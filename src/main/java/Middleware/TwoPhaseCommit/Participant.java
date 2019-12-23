@@ -59,7 +59,7 @@ public class Participant {
 
     public void registerOrderedOperation(String name, Consumer<OperationMessage> callback){
         mms.registerHandler(name, (a,b) -> {
-            coh.read(b, o->{
+            coh.read(0, b, o->{
                 OperationMessage om = (OperationMessage) o;
                 callback.accept(om);
             });

@@ -1,6 +1,7 @@
 import Logic.Publisher;
 import Logic.User;
 import Middleware.GlobalSerializer;
+import Middleware.Logging.Logger;
 import Middleware.Marshalling.MessageAuth;
 import Middleware.Recovery;
 import Middleware.ServerMessagingService;
@@ -18,10 +19,11 @@ public class Server {
 
     public Server(int id, Address address, List<Address> servers){
          this.id = id;
-         this.sms = new ServerMessagingService(id, address, servers);
-         //this.publisher = new PublisherImpl();
          this.s = new GlobalSerializer().getS();
-         this.r = new Recovery(sms);
+         Logger log = new Logger("logs", "Server" + id, s);
+         this.sms = new ServerMessagingService(id, address, servers, log);
+         //this.publisher = new PublisherImpl();
+         this.r = new Recovery(sms,log);
          //this.loggers = new HashMap<>();
          //this.loggers.put("Users", new Logger("Users", s));
          //this.loggers.put("Publishes", new Logger("Publishes", s));
@@ -105,14 +107,13 @@ public class Server {
             sms.sendCausalOrderAsyncToCluster("text", b);
         });
         sms.registerOrderedOperation("text", msg->
-            System.out.println(id + ": received: " + msg.toString() + " from " + msg.toString()));
+            System.out.println("server:startListeningToText -> received: " + msg.toString()));
         r.start(x -> {});
     }
 
     public void send(String text, Address a){
         MessageAuth ma = new MessageAuth("boi", "123");
         sms.send(a, ma, "spreadText");
-        System.out.println("Client sending hello");
     }
 
     public static void main(String[] args) throws InterruptedException {
@@ -124,8 +125,7 @@ public class Server {
         Thread.sleep(10000);
         Server s1 = new Server(id, addresses.get(id), addresses);
         s1.startListeningToText();
-        if(id == 0){
-            s1.send("Olá", addresses.get(1));
-            Thread.sleep(10000);}
+        if(id == 0)
+            s1.send("Olá", addresses.get(0));
     }
 }

@@ -13,4 +13,11 @@ public class MessageSub extends MessageAuth {
     public String getName() {
         return name;
     }
+
+    @Override
+    public String toString() {
+        return "MessageSub{" +
+                "name='" + name + '\'' +
+                '}';
+    }
 }

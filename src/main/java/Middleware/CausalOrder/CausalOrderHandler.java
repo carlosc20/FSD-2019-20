@@ -22,7 +22,7 @@ public class CausalOrderHandler {
     private COHRecovery cohr;
 
 
-    public CausalOrderHandler(int id, int clusterSize, Serializer s){
+    public CausalOrderHandler(int id, int clusterSize, Serializer s, Logger log){
         this.id = id;
         this.vector = new ArrayList<>();
         for(int i = 0; i<clusterSize; i++){
@@ -30,13 +30,16 @@ public class CausalOrderHandler {
         }
         this.msgQueue = new LinkedList<>();
         this.s = s;
-        this.cohr = new COHRecovery(id, s, vector);
+        this.cohr = new COHRecovery(id, s, vector, log);
     }
-
+/*
     public List<Integer> recover(Consumer<Object> serverCallback){
         Object oldVector = cohr.recoverVector();
-        if(oldVector != null)
+        if(oldVector != null){
+            System.out.println("coh:recover -> vector in loggs is not null");
             this.vector = (List<Integer>)oldVector;
+        }
+        printArray(vector, "coh:recover -> vector: ");
         cohr.recoverMessageQueue((obj)->{
             VectorMessage vm = (VectorMessage) obj;
             if(!inOrder(vm)){
@@ -46,52 +49,50 @@ public class CausalOrderHandler {
         cohr.recoverOperations(serverCallback);
         return vector;
     }
-
-    public boolean treatRecoveryRequest(MessageRecovery mr, Consumer<byte[]> callback){
+*/
+    public boolean treatRecoveryRequest(MessageRecovery mr, Consumer<VectorMessage> callback){
         return cohr.getMissingOperations(mr, callback);
     }
 
-    public void read(byte[] b, Consumer<Object> callback){
+    public void read(int type, byte[] b, Consumer<Object> callback){
         VectorMessage msg = s.decode(b);
-        System.out.println(id + ": Received a msg "+ msg.toString());
-        System.out.println(id + ": from: " + msg.getId() + " i have: " + vector.get(msg.getId()));
+        System.out.println("coh:read"+type+ "-> Received a msg "+ msg.toString());
+        System.out.println("coh:read"+type+ "-> from server " + msg.getId() + " and I have " + vector.get(msg.getId())+ " as is clock");
+        if(type == 0)
+            cohr.logOrderedOperation(msg);
         if(inOrder(msg)){
-            System.out.println(id + ": inOrder");
+            System.out.println("coh:read"+type+ "->inOrder");
             updateVector(msg);
-            cohr.logInOrderOperation(msg);
-            //TODO ack messages
             cohr.updateClocks(msg);
             callback.accept(msg.getContent());
-            updateQueue(callback);
+            updateQueue(type, callback);
         }
         else{
-            System.out.println(id + ": outOfOrder");
-            cohr.logOutOfOrderOperation(msg);
+            System.out.println("coh:read"+type+ "->outOfOrder");
             msgQueue.add(msg);
         }
     }
 
-    private void updateVector(VectorMessage msg){
-        int id = msg.getId();
-        vector.set(id, msg.getIndex(id));
-        cohr.logVector(vector);
-    }
-
-    private void updateQueue(Consumer<Object> callback){
+    private void updateQueue(int type, Consumer<Object> callback){
         Iterator<VectorMessage> iter = msgQueue.iterator();
         while (iter.hasNext()){
             VectorMessage msg = iter.next();
             if(inOrder(msg)){
                 updateVector(msg);
-                cohr.logInOrderOperation(msg);
                 cohr.updateClocks(msg);
+                if(type == 0)
+                    cohr.logOrderedOperation(msg);
                 //TODO ack messages
                 callback.accept(msg.getContent());
                 iter.remove();
-                updateQueue(callback);
+                updateQueue(type, callback);
                 return;
             }
         }
+    }
+    private void updateVector(VectorMessage msg){
+        int id = msg.getId();
+        vector.set(id, msg.getIndex(id));
     }
 
     private boolean inOrder(VectorMessage msg){
@@ -114,19 +115,33 @@ public class CausalOrderHandler {
 
     public byte[] createMsg(Object content) {
         vector.set(id, vector.get(id) + 1); // incrementa vetor local
-        VectorMessage vm = new VectorMessage<>(id, vector, content);
+        VectorMessage vm = new VectorMessage(id, vector, content);
+        System.out.println(vm.toString());
         //TODO cuidado
         //TODO add to unacknoledged
         return s.encode(vm);
     }
 
-    public void logInOrderOperation(byte[] toSend){
+    public void logAndSaveNonAckedOperation(byte[] toSend){
         System.out.println("Logging operation");
         VectorMessage vm = s.decode(toSend);
         cohr.saveUnackedOperation(vector.get(id),vm);
-        cohr.logVector(vector);
-        cohr.logInOrderOperation(vm);
+        cohr.logOrderedOperation(vm);
     }
+
+    public List<Integer> getVector() {
+        return vector;
+    }
+
+    //DEBUG
+    private void printArray(List<Integer> v, String header){
+        StringBuilder strb = new StringBuilder();
+        for(Integer i : v){
+            strb.append(Integer.toString(i)).append('/');
+        }
+        System.out.println(header + strb);
+    }
+
 
     public static void main(String[] args) throws InterruptedException {
       /*

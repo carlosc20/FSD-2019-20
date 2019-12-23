@@ -5,13 +5,13 @@ import io.atomix.utils.net.Address;
 import java.util.List;
 import java.util.ArrayList;
 
-public class VectorMessage<T> implements VectorOrdering {
+public class VectorMessage implements VectorOrdering {
 
     private int id;
     //TODO pode não ser preciso
     private Address sender;
     private List<Integer> v;
-    private T content;
+    private Object content;
 
     public VectorMessage(){
         this.id = -1;
@@ -19,7 +19,7 @@ public class VectorMessage<T> implements VectorOrdering {
         this.v = new ArrayList<>();
     }
 
-    public VectorMessage(int id, List<Integer> v, T content, Address sender){
+    public VectorMessage(int id, List<Integer> v, Object content, Address sender){
         this.sender = sender;
         this.id = id;
         this.v = v;
@@ -27,7 +27,7 @@ public class VectorMessage<T> implements VectorOrdering {
     }
 
 
-    public VectorMessage(int id, List<Integer> v, T content){
+    public VectorMessage(int id, List<Integer> v, Object content){
         this.id = id;
         this.v = v;
         this.content = content;
@@ -38,7 +38,7 @@ public class VectorMessage<T> implements VectorOrdering {
         this.v = v;
     }
 
-    public T getContent(){
+    public Object getContent(){
         return content;
     }
 
