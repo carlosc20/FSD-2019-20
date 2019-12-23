@@ -30,6 +30,7 @@ public class Recovery {
 
     private void registerHandlers(){
         sms.registerOperation("recovery", (a,b)->{
+            System.out.println("recovery:handler -> Received request from: " + a);
             boolean state = sms.coh.treatRecoveryRequest(sms.decode(b),
                                 msg -> sms.sendOldOperation(a, msg, "text")); //TODO tirar o type de estático
             return sms.encode(state);

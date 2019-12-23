@@ -58,17 +58,22 @@ public class CausalOrderHandler {
         VectorMessage msg = s.decode(b);
         System.out.println("coh:read"+type+ "-> Received a msg "+ msg.toString());
         System.out.println("coh:read"+type+ "-> from server " + msg.getId() + " and I have " + vector.get(msg.getId())+ " as is clock");
+        //TODO assim ou dois métodos separados?
         if(type == 0)
             cohr.logOrderedOperation(msg);
+        else{
+            if(msg.getId() == id)
+                cohr.saveUnackedOperation(vector.get(id), msg);
+        }
         if(inOrder(msg)){
-            System.out.println("coh:read"+type+ "->inOrder");
+            System.out.println("coh:read"+type+ " -> inOrder");
             updateVector(msg);
             cohr.updateClocks(msg);
             callback.accept(msg.getContent());
             updateQueue(type, callback);
         }
         else{
-            System.out.println("coh:read"+type+ "->outOfOrder");
+            System.out.println("coh:read"+type+ " -> outOfOrder");
             msgQueue.add(msg);
         }
     }
@@ -123,9 +128,9 @@ public class CausalOrderHandler {
     }
 
     public void logAndSaveNonAckedOperation(byte[] toSend){
-        System.out.println("Logging operation");
+        System.out.println("coh:logAndSaveNonAckedOperation -> clock of this message: " + vector.get(id));
         VectorMessage vm = s.decode(toSend);
-        cohr.saveUnackedOperation(vector.get(id),vm);
+        cohr.saveUnackedOperation(vector.get(id), vm);
         cohr.logOrderedOperation(vm);
     }
 

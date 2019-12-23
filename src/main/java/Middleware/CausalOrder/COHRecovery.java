@@ -5,7 +5,6 @@ import Middleware.Marshalling.MessageRecovery;
 import io.atomix.utils.serializer.Serializer;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
@@ -53,6 +52,7 @@ public class COHRecovery {
     public void saveUnackedOperation(int clock, VectorMessage vm){
         nonAcknowledgedOperations.put(clock, vm);
         System.out.println("cohr:saveUnackedOperation -> Saving " + nonAcknowledgedOperations.get(clock));
+        printMap("cohr:saveUnackedOperation -> hashmap updated");
     }
 
     public void updateClocks(VectorMessage vm){
@@ -66,8 +66,8 @@ public class COHRecovery {
                 count++;
         }
         System.out.println("cohr:updateClocks -> Number of acks: " + count);
-        System.out.println("cohr:updateClocks -> struct size: " + myClockOnCluster.size());
         if(count==this.myClockOnCluster.size())
+            System.out.println("cohr:updateClocks -> acknowledging");
             nonAcknowledgedOperations.remove(clockValue);
     }
 
@@ -101,5 +101,12 @@ public class COHRecovery {
         System.out.println(header + strb);
     }
 
+    private void printMap(String header){
+        StringBuilder strb = new StringBuilder();
+        for(Object o : nonAcknowledgedOperations.values()){
+            strb.append(o.toString()).append('\n');
+        }
+        System.out.println(header + strb);
+    }
 }
 

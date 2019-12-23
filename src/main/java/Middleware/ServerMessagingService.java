@@ -94,7 +94,7 @@ public class ServerMessagingService {
         for(Address a : participants){
             MessageRecovery mr = new MessageRecovery(id, vector.get(i));
             mms.sendAndReceive(a, type, s.encode(mr), timout, e)
-                .thenAccept(b -> System.out.println((boolean)s.decode(b)));
+                .thenAccept(b -> System.out.println("sms:sendAndReceiveForRecovery -> " + (boolean)s.decode(b) + " by " + a));
             i++;
         }
         return CompletableFuture.completedFuture(null);
