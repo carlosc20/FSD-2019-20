@@ -23,6 +23,10 @@ public class TransactionMessage  {
         this.type = type;
     }
 
+    public String getName() {
+        return name;
+    }
+
     @Override
     public String toString() {
         return "TransactionMessage{" +

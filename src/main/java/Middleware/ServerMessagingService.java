@@ -20,6 +20,7 @@ import java.util.concurrent.Executors;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 public class ServerMessagingService {
     private int id;
@@ -52,6 +53,16 @@ public class ServerMessagingService {
     //public void start(){
       //  mms.start();
     //}
+/*
+    public <T> void registerOperation(String type, Function<T,T> callback){
+        mms.registerHandler(type, (a,b) -> {
+            return s.encode(callback.apply(s.decode(b)));
+        }, e);
+    }
+*/
+    public <T> void registerOperation(String type, Consumer<T> callback){
+        mms.registerHandler(type, (a,b) -> {callback.accept(s.decode(b));}, e);
+    }
 
     public void registerOperation(String type, BiConsumer<Address,byte[]> callback){
         mms.registerHandler(type, callback, e);
@@ -104,6 +115,15 @@ public class ServerMessagingService {
         System.out.println("DEBUG MESSAGE");
         System.out.println(msg.toString());
         mms.sendAsync(address, type, s.encode(msg));
+    }
+
+    public <T> CompletableFuture<T> sendAndReceive(Address a, String type, Object content){
+        return mms.sendAndReceive(a, type, s.encode(content),e)
+                    .thenApply(b -> s.decode(b));
+    }
+
+    public <T> CompletableFuture<Void> sendAsync(Address a, String type, T content){
+        return mms.sendAsync(a,type,s.encode(content));
     }
 
     public <T> byte[] encode(T object){

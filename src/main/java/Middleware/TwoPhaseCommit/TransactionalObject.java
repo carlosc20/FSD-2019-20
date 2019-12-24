@@ -1,12 +1,39 @@
 package Middleware.TwoPhaseCommit;
 
-public class TransactionalObject<T> {
-    private T object;
-    private boolean commited;
+import Middleware.DistributedStructures.Mapped;
+
+public class TransactionalObject<V extends Mapped> implements Mapped{
+    private V object;
+    private boolean state; //true == commited, false == nonCommited
 
 
-    public TransactionalObject(T object){
+    public TransactionalObject(V object){
         this.object = object;
-        this.commited = false;
+        this.state = false;
     }
+
+    public void setCommited(){
+        this.state= true;
+    }
+
+    public boolean getState(){
+        return this.state;
+    }
+
+    public V getObject() {
+        return object;
+    }
+
+    public Object getKey(){
+        return object.getKey();
+    }
+
+    @Override
+    public String toString() {
+        return "TransactionalObject{" +
+                "object=" + object +
+                ", state=" + state +
+                '}';
+    }
+
 }

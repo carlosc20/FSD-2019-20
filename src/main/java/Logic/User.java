@@ -1,9 +1,11 @@
 package Logic;
 
+import Middleware.DistributedStructures.Mapped;
+
 import java.util.ArrayList;
 import java.util.List;
 
-public class User {
+public class User implements Mapped<String> {
 
     private String name;
     private String password;
@@ -34,5 +36,9 @@ public class User {
 
     public void removeSubscription(String name) {
         subscriptions.remove(name);
+    }
+
+    public String getKey(){
+        return name;
     }
 }

@@ -1,6 +1,7 @@
 package Middleware;
 
 import Middleware.CausalOrder.VectorMessage;
+import Middleware.DistributedStructures.MapMessage;
 import Middleware.Marshalling.MessageAuth;
 import Middleware.Marshalling.MessageRecovery;
 import Middleware.Marshalling.MessageSend;
@@ -30,6 +31,7 @@ public class GlobalSerializer {
                 .addType(MessageSend.class)
                 .addType(MessageSub.class)
                 .addType(MessageRecovery.class)
+                .addType(MapMessage.class)
                 .build();
     }
 
