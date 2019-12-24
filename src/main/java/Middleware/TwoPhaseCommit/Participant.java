@@ -23,35 +23,39 @@ public class Participant {
 
     public CompletableFuture<TransactionMessage> begin(String name){
         TransactionMessage tm = new TransactionMessage(name);
-        return sms.sendAndReceive(manager,"controller", tm);
+        return sms.sendAndReceive(manager,"begin", tm);
     }
 
     public CompletableFuture<TransactionMessage> commit(TransactionMessage tm){
         tm.setType('t');
-        return sms.sendAndReceive(manager, "2pc", tm);
+        return sms.sendAndReceive(manager, "commit", tm);
     }
 
-    public void listeningToTwoPhaseCommit(Function<TransactionMessage, Integer> checkStatus, Consumer<TransactionMessage> callback){
-        sms.<TransactionMessage>registerOperation("2pc", (tm) -> {
-                switch (tm.getType()) {
-                    case 'p':
-                        int state = checkStatus.apply(tm);
-                        if(state == 1)
-                            tm.setType('p');
-                        else
-                            tm.setType('a');
-                        break;
-                    case 'c':
-                        //TODO logg
-                        callback.accept(tm);
-                        System.out.println("Logic.Server " + this.id + " Commited");
-                        break;
-                    case 'a':
-                        //TODO logg
-                        callback.accept(tm);
-                        System.out.println("Logic.Server " + this.id + " Aborted");
-                        break;
-                }
+    public void listeningToFirstPhase(Function<TransactionMessage, Integer> checkStatus) {
+        sms.<TransactionMessage>registerOperation("firstphase", (tm) -> {
+            int state = checkStatus.apply(tm);
+            if (state == 1)
+                tm.setType('p');
+            else
+                tm.setType('a');
+            return tm;
+        });
+    }
+
+    public void listeningToSecondPhase(Consumer<TransactionMessage> callback){
+        sms.<TransactionMessage>registerOperation("secondphase", (tm) -> {
+            switch (tm.getType()) {
+                case 'c':
+                    //TODO logg
+                    callback.accept(tm);
+                    System.out.println("Logic.Server " + this.id + " Commited");
+                    break;
+                case 'a':
+                    //TODO logg
+                    callback.accept(tm);
+                    System.out.println("Logic.Server " + this.id + " Aborted");
+                    break;
+            }
         });
     }
 }

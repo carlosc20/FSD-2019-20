@@ -3,7 +3,7 @@ package Middleware;
 import Middleware.CausalOrder.CausalOrderHandler;
 import Middleware.CausalOrder.VectorMessage;
 import Middleware.Logging.Logger;
-import Middleware.Marshalling.MessageAuth;
+
 import Middleware.Marshalling.MessageRecovery;
 import io.atomix.cluster.messaging.ManagedMessagingService;
 import io.atomix.cluster.messaging.MessagingConfig;
@@ -21,6 +21,8 @@ import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class ServerMessagingService {
     private int id;
@@ -53,13 +55,13 @@ public class ServerMessagingService {
     //public void start(){
       //  mms.start();
     //}
-/*
+
     public <T> void registerOperation(String type, Function<T,T> callback){
         mms.registerHandler(type, (a,b) -> {
             return s.encode(callback.apply(s.decode(b)));
         }, e);
     }
-*/
+
     public <T> void registerOperation(String type, Consumer<T> callback){
         mms.registerHandler(type, (a,b) -> {callback.accept(s.decode(b));}, e);
     }
@@ -76,6 +78,17 @@ public class ServerMessagingService {
         mms.registerHandler(name, (a,b) -> {
             coh.read(0, b, o-> callback.accept(o));
         },e);
+    }
+
+    public <T> CompletableFuture<List<byte[]>> sendAndReceiveToCluster(String type, T content){
+        List<CompletableFuture<byte[]>> requests = new ArrayList<>();
+        for (Address a : participants){
+            requests.add(mms.sendAndReceive(a, type, s.encode(content)));
+        }
+        return CompletableFuture.allOf(requests.toArray(new CompletableFuture[requests.size()]))
+                    .thenApply(v -> requests.stream()
+                    .map(CompletableFuture::join)
+                    .collect(Collectors.toList()));
     }
 
     public CompletableFuture<Void> sendCausalOrderAsyncToCluster(String type, byte[] content) {

@@ -32,16 +32,16 @@ public class DistributedTransactionalMap<K,V extends Mapped<K>> extends Distribu
             }
             else transactionsState.put(om.getTransactionId(), 2);
         });
-        p.listeningToTwoPhaseCommit(tm -> transactionsState.get(tm.getTransactionId()),
-                tm -> {
-                    int tid = tm.getTransactionId();
-                    if(tm.getType() == 'c')
-                        valuesByTransactionId.get(tid).setCommited();
-                    else{
-                        TransactionalObject<V> to = valuesByTransactionId.remove(tid);
-                        localRemove(to.getObject().getKey());
-                    }
-                });
+        p.listeningToFirstPhase(tm -> transactionsState.get(tm.getTransactionId()));
+        p.listeningToSecondPhase(tm -> {
+            int tid = tm.getTransactionId();
+            if (tm.getType() == 'c')
+                valuesByTransactionId.get(tid).setCommited();
+            else {
+                TransactionalObject<V> to = valuesByTransactionId.remove(tid);
+                localRemove(to.getObject().getKey());
+            }
+        });
     }
 
     public CompletableFuture<Void> tPut(K key, V value){

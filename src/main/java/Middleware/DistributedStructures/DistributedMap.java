@@ -23,12 +23,12 @@ public class DistributedMap<K,V> {
 
     public void registerDistributedPut(){
         String operationName = name + ":put";
-        sms.<MapMessage<K,V>>registerOperation(operationName, mm-> valuesById.put(mm.key, mm.value));
+        sms.<MapMessage<K,V>>registerOperation(operationName, mm-> {valuesById.put(mm.key, mm.value);});
     }
 
     public void registerDistributedRemove(){
         String operationName = name + ":remove";
-        sms.<MapMessage<K,V>>registerOperation(operationName, mm-> valuesById.remove(mm.key));
+        sms.<MapMessage<K,V>>registerOperation(operationName, mm-> {valuesById.remove(mm.key);});
     }
 
     public void put(K key, V value){

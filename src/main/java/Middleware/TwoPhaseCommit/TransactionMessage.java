@@ -27,6 +27,10 @@ public class TransactionMessage  {
         return name;
     }
 
+    public void setTransactionId(int transactionId) {
+        this.transactionId = transactionId;
+    }
+
     @Override
     public String toString() {
         return "TransactionMessage{" +

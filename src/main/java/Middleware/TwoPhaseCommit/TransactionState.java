@@ -7,10 +7,10 @@ import java.util.*;
 public class TransactionState {
     private Set<Address> states;
     private int notReadyCounter;
-    private int type; //0->unCommited, 1->commited, 2->aborted
+    private int state; //0->unCommited, 1->commited, 2->aborted
 
     public TransactionState(List<Address> participants){
-        this.type = 0;
+        this.state = 0;
         this.states = new HashSet<>();
         for(Address a : participants)
             states.add(a);
@@ -26,11 +26,15 @@ public class TransactionState {
     }
 
     public void setCommited() {
-        this.type = 1;
+        this.state = 1;
     }
 
     public void setAborted() {
-        this.type = 2;
+        this.state = 2;
+    }
+
+    public int getState() {
+        return state;
     }
 
     public static void main(String[] args) {
