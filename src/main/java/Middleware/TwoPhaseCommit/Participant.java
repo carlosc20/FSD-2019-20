@@ -43,19 +43,6 @@ public class Participant {
     }
 
     public void listeningToSecondPhase(Consumer<TransactionMessage> callback){
-        sms.<TransactionMessage>registerOperation("secondphase", (tm) -> {
-            switch (tm.getType()) {
-                case 'c':
-                    //TODO logg
-                    callback.accept(tm);
-                    System.out.println("Logic.Server " + this.id + " Commited");
-                    break;
-                case 'a':
-                    //TODO logg
-                    callback.accept(tm);
-                    System.out.println("Logic.Server " + this.id + " Aborted");
-                    break;
-            }
-        });
+        sms.registerOperation("secondphase", callback);
     }
 }

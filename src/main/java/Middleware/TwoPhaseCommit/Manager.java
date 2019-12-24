@@ -18,7 +18,7 @@ import java.util.function.BiConsumer;
 public class Manager {
     private int id;
     private int numTransactions;
-    private Map<Integer, TransactionState> transactions;
+    private Map<Integer, Integer> transactions; //1-> commit, 2 -> abort
     private List<Address> staticParticipants;
     private Logger log;
     private ServerMessagingService sms;
@@ -29,53 +29,36 @@ public class Manager {
         this.transactions = new HashMap<>();
         this.sms = sms;
         this.staticParticipants = participants;
-        //startTwoPhaseCommit();
+
     }
-/*
-    //TODO? em vez de ter char's a identificar podemos usar o typo dos send e handlers
-    private void startTwoPhaseCommit(){
+
+    public void startTwoPhaseCommit(){
         sms.<TransactionMessage>registerOperation("begin", tm -> {
             beginTransaction(tm);
             return tm;
         });
-        sms.registerOperation("2pc", controllerParse);
-        sms.<TransactionMessage>registerOperation("commit", (tm) ->{
+        sms.<TransactionMessage>registerOperation("commit", tm ->{
             tm.setType('p');
-            return sms.sendAndReceiveToCluster("firstphase", tm);
+            sms.sendAndReceiveToCluster("firstphase", tm, received->{
+                if(received.getType() == 'a')
+                    transactions.put(received.getTransactionId(), 2);
+                return received;
+            }).thenAccept(x ->{
+                if(transactions.get(tm.getTransactionId()) == 1)
+                    tm.setType('c');
+                else
+                    tm.setType('a');
+                sms.sendAsyncToCluster("secondphase", tm);
+            });
         });
     }
 
     private void beginTransaction(TransactionMessage tm){
         numTransactions++;
         //Identifier ident = new Identifier(numTransactions, id);
-        transactions.put(numTransactions, new TransactionState(staticParticipants));
+        transactions.put(numTransactions, 1);
         tm.setTransactionId(numTransactions);
     }
 
-    private BiConsumer<Address, byte[]> controllerParse = (a,b) -> {
-        TransactionMessage tm = sms.decode(b);
-        switch (tm.getType()){
-            case 'p':
-                System.out.println(id + ": Received prepared");
-                TransactionState ts = transactions.get(tm.getTransactionId());
-                //TODO logg...se der reeboot vai ter de pedir todos os prepareds de novo
-                if(ts.insertAndReadyToCommit(a)) {
-                    tm.setType('c');
-                    System.out.println(id + ": Sending commit to cluster");
-                    sms.sendAsyncToCluster("2pc", tm);
-                    }
-                    //TODO cuidado que aqui entram dois casos, mas não deve de acontecer == 1
-                else{
-                    tm.setType('a');
-                    sms.sendAsyncToCluster("2pc", tm);
-                    }
-                }
-                break;
-            case 'a':
-                //TODO logg
-
-                break;
-        };
-    */
     //TODO arranjar maneira de a não confirmação de uma transação não bloquear outras transações
 }

@@ -80,16 +80,22 @@ public class ServerMessagingService {
         },e);
     }
 
-    public <T> CompletableFuture<List<byte[]>> sendAndReceiveToCluster(String type, T content){
-        List<CompletableFuture<byte[]>> requests = new ArrayList<>();
+    public <T> CompletableFuture<Void> sendAndReceiveToCluster(String type, T content, Function<T,T> callback){
+        List<CompletableFuture<T>> requests = new ArrayList<>();
         for (Address a : participants){
-            requests.add(mms.sendAndReceive(a, type, s.encode(content)));
+            requests.add(mms.sendAndReceive(a, type, s.encode(content))
+                        .thenApply(x -> callback.apply(s.decode(x))));
         }
-        return CompletableFuture.allOf(requests.toArray(new CompletableFuture[requests.size()]))
-                    .thenApply(v -> requests.stream()
-                    .map(CompletableFuture::join)
-                    .collect(Collectors.toList()));
+        return CompletableFuture.allOf(requests.toArray(new CompletableFuture[0]));
     }
+
+
+    /*
+    CompletableFuture.allOf(requests.toArray(new CompletableFuture[requests.size()]))
+                    .thenApply(v -> requests.stream()
+                    .map(CompletableFuture::join()))
+                    .collect(Collectors.toList()));
+    */
 
     public CompletableFuture<Void> sendCausalOrderAsyncToCluster(String type, byte[] content) {
         System.out.println("sms:sendCausalOrderAsyncToCluster ->");
