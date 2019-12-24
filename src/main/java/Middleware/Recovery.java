@@ -19,7 +19,7 @@ public class Recovery {
         System.out.println("recovery:start -> Starting recovery");
         log.recover( (msg)->{
             if(msg instanceof VectorMessage)
-                sms.coh.read(1, sms.encode(msg), callback); //TODO alta martelada
+                sms.coh.recoveryRead(sms.encode(msg), callback); //TODO alta martelada
         });
         Duration d = Duration.ofSeconds(15);
         registerHandlers();

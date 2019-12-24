@@ -76,7 +76,7 @@ public class ServerMessagingService {
 
     public void registerOrderedOperation(String name, Consumer<Object> callback){
         mms.registerHandler(name, (a,b) -> {
-            coh.read(0, b, o-> callback.accept(o));
+            coh.read(b, o-> callback.accept(o));
         },e);
     }
 

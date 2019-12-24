@@ -54,6 +54,14 @@ public class CausalOrderHandler {
         return cohr.getMissingOperations(mr, callback);
     }
 
+    public void read(byte[] b, Consumer<Object> callback){
+        read(0, b, callback);
+    }
+
+    public void recoveryRead(byte[] b, Consumer<Object> callback){
+        read(1, b, callback);
+    }
+
     public void read(int type, byte[] b, Consumer<Object> callback){
         VectorMessage msg = s.decode(b);
         System.out.println("coh:read"+type+ "-> Received a msg "+ msg.toString());
