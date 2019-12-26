@@ -20,10 +20,9 @@ public class Participant {
         this.log = log;
     }
 
-    public CompletableFuture<TransactionMessage> begin(String name){
+    public CompletableFuture<Integer> begin(String name){
         System.out.println("participant:begin -> begining transaction");
-        TransactionMessage tm = new TransactionMessage(name);
-        return sms.sendAndReceive(manager,"begin", tm);
+        return sms.sendAndReceive(manager,"begin", "");
     }
 
     public CompletableFuture<TransactionMessage> commit(TransactionMessage tm){

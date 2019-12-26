@@ -28,9 +28,10 @@ public class Server {
          //this.publisher = new PublisherImpl();
          this.r = new Recovery(sms,log);
          Participant p = new Participant(sms, manager, log);
-         this.users = new DistributedTransactionalMap<>("users", sms, p);
+         this.users = new DistributedTransactionalMap<>("users", sms, p, log);
          //users.registerDistributedTransactionalPut();
     }
+
 
     public void start(){
        // sms.start();

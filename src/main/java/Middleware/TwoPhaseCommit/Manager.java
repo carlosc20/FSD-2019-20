@@ -37,8 +37,7 @@ public class Manager {
     public void startTwoPhaseCommit(){
         sms.<TransactionMessage>registerOperation("begin", tm -> {
             //TODO tirar o tm
-            beginTransaction(tm);
-            return tm;
+            return beginTransaction();
         });
         sms.<TransactionMessage>registerOperation("commit", tm ->{
             tm.setType('p');
@@ -62,12 +61,12 @@ public class Manager {
         });
     }
 
-    private void beginTransaction(TransactionMessage tm){
+    private int beginTransaction(){
         numTransactions++;
         System.out.println("manager -> transaction request id " + numTransactions);
         //Identifier ident = new Identifier(numTransactions, id);
         transactions.put(numTransactions, 1);
-        tm.setTransactionId(numTransactions);
+        return numTransactions;
     }
     //TODO arranjar maneira de a não confirmação de uma transação não bloquear outras transações
 

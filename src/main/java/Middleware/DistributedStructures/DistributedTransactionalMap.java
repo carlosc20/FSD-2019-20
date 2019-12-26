@@ -1,5 +1,6 @@
 package Middleware.DistributedStructures;
 
+import Middleware.Logging.Logger;
 import Middleware.ServerMessagingService;
 import Middleware.TwoPhaseCommit.Participant;
 import Middleware.TwoPhaseCommit.TransactionMessage;
@@ -16,15 +17,18 @@ public class DistributedTransactionalMap<K,V extends Mapped<K>>{
     private HashMap<Integer, Integer> transactionsState; //1->prepared, 2->aborted
     private String name;
     private ServerMessagingService sms;
+    private Logger log;
     
-    public DistributedTransactionalMap(String name, ServerMessagingService sms, Participant p) {
+    public DistributedTransactionalMap(String name, ServerMessagingService sms, Participant p, Logger log) {
         this.name = name;
         this.valuesById = new HashMap<>();
         this.sms = sms;
         this.p = p;
         this.valuesByTransactionId = new HashMap<>();
         this.transactionsState = new HashMap<>();
+        //para sair
         registerDistributedTransactionalPut();
+        this.log = log;
     }
 
     //TODO mais métodos se for preciso
@@ -38,13 +42,14 @@ public class DistributedTransactionalMap<K,V extends Mapped<K>>{
     public void registerDistributedTransactionalPut() {
         String operationName = this.name + ":put";
         System.out.println("dtm:regput -> starting");
-        sms.<OperationMessage<MapMessage<K,V>> >registerOperation(operationName, om ->{
-            System.out.println("dtm:regput -> put request arrived transactionId == " + om.getTransactionId());
-            MapMessage<K,V> mm = om.getContent();
-            return put(mm.key, om.getTransactionId(), mm.value);
+        sms.<TransactionMessage<MapMessage<K,V>> >registerOperation(operationName, tm ->{
+            System.out.println("dtm:regput -> put request arrived transactionId == " + tm.getTransactionId());
+            MapMessage<K,V> mm = tm.getContent();
+            log.write(tm);
+            return put(mm.key, tm.getTransactionId(), mm.value);
         });
         p.listeningToFirstPhase(tm -> transactionsState.get(tm.getTransactionId()));
-        p.listeningToSecondPhase(secondPhase );
+        p.listeningToSecondPhase(secondPhase);
     }
 
     private Consumer<TransactionMessage> secondPhase = (tm) ->{
@@ -65,18 +70,17 @@ public class DistributedTransactionalMap<K,V extends Mapped<K>>{
         transactionsState.remove(tid);
     };
 
-
     public CompletableFuture<Void> put(K key, V value){
         String operationName = this.name + ":put";
         return p.begin(operationName)
-                    .thenAccept((tm) ->{
-                        int tid = tm.getTransactionId();
+                    .thenAccept((tid) ->{
                         //TODO muitos new ...
                         put(key, tid, value);
                         MapMessage<K,V> mm = new MapMessage<>(key, value);
-                        OperationMessage<MapMessage<K,V>> om = new OperationMessage<>(tid,mm,operationName);
-                        System.out.println("dtm:tPut -> sending " + om.toString());
-                        sms.sendAndReceiveToCluster(operationName, om)
+                        TransactionMessage<MapMessage<K,V>> tm = new TransactionMessage<>(tid,operationName,mm);
+                        log.write(tm);
+                        System.out.println("dtm:tPut -> sending " + tm.toString());
+                        sms.sendAndReceiveToCluster(operationName, tm)
                             .thenAccept(x -> {
                                 System.out.println("sending commit to manager");
                                 p.commit(tm);});
@@ -99,6 +103,14 @@ public class DistributedTransactionalMap<K,V extends Mapped<K>>{
             transactionsState.put(transactionId, 2);
             return 2;
         }
+    }
+
+    public V get(K key){
+        return valuesById.get(key).getObject();
+    }
+
+    public boolean containsKey(K key){
+        return valuesById.containsKey(key);
     }
 
 

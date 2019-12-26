@@ -3,7 +3,6 @@ package Middleware;
 import Logic.User;
 import Middleware.CausalOrder.VectorMessage;
 import Middleware.DistributedStructures.MapMessage;
-import Middleware.DistributedStructures.OperationMessage;
 import Middleware.Marshalling.MessageAuth;
 import Middleware.Marshalling.MessageRecovery;
 import Middleware.Marshalling.MessageSend;
@@ -34,7 +33,6 @@ public class GlobalSerializer {
                 .addType(MessageSub.class)
                 .addType(MessageRecovery.class)
                 .addType(MapMessage.class)
-                .addType(OperationMessage.class)
                 .addType(User.class)
                 .build();
     }
