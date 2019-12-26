@@ -33,7 +33,7 @@ public class OperationMessage<V>{
     public String toString() {
         return "OperationMessage{" +
                 "transactionId=" + transactionId +
-                ", content=" + content +
+                ", content=" + content.toString() +
                 ", operationName='" + operationName + '\'' +
                 '}';
     }

@@ -1,10 +1,12 @@
 import Logic.Publisher;
 import Logic.User;
+import Middleware.DistributedStructures.DistributedTransactionalMap;
 import Middleware.GlobalSerializer;
 import Middleware.Logging.Logger;
 import Middleware.Marshalling.MessageAuth;
 import Middleware.Recovery;
 import Middleware.ServerMessagingService;
+import Middleware.TwoPhaseCommit.Participant;
 import io.atomix.utils.net.Address;
 import io.atomix.utils.serializer.Serializer;
 
@@ -16,17 +18,18 @@ public class Server {
     private Publisher publisher;
     private Serializer s;
     private Recovery r;
+    private DistributedTransactionalMap<String, User> users;
 
-    public Server(int id, Address address, List<Address> servers){
+    public Server(int id, Address address, List<Address> servers, Address manager){
          this.id = id;
          this.s = new GlobalSerializer().getS();
          Logger log = new Logger("logs", "Server" + id, s);
          this.sms = new ServerMessagingService(id, address, servers, log);
          //this.publisher = new PublisherImpl();
          this.r = new Recovery(sms,log);
-         //this.loggers = new HashMap<>();
-         //this.loggers.put("Users", new Logger("Users", s));
-         //this.loggers.put("Publishes", new Logger("Publishes", s));
+         Participant p = new Participant(sms, manager, log);
+         this.users = new DistributedTransactionalMap<>("users", sms, p);
+         //users.registerDistributedTransactionalPut();
     }
 
     public void start(){
@@ -101,6 +104,17 @@ public class Server {
     }
 
     //Testes .........----------------//--------------.........
+
+
+    public void putUser(String name, User u){
+        users.put(name, u);
+    }
+
+    public void localPutUser(String name, User u){
+        users.localPut(name, u);
+    }
+
+
     public void startListeningToText(){
         sms.registerOperation("spreadText", (a,b)->{
             System.out.println(id + ": received spread request ratatataTa");
@@ -118,14 +132,20 @@ public class Server {
 
     public static void main(String[] args) throws InterruptedException {
         ArrayList<Address> addresses = new ArrayList<>();
-        for(int i = 0; i<4; i++){
+        Address manager = Address.from("localhost", 20000);
+        for(int i = 0; i<3; i++){
             addresses.add(Address.from("localhost",10000 + i));
         }
         int id = Integer.parseInt(new Scanner(System.in).nextLine());
-        Thread.sleep(10000);
-        Server s1 = new Server(id, addresses.get(id), addresses);
-        s1.startListeningToText();
-        if(id == 0)
-            s1.send("Olá", addresses.get(0));
+        Thread.sleep(5000);
+        Server s = new Server(id, addresses.get(id), addresses, manager);
+        User u = new User("marco", "123");
+        //s.startListeningToText();
+        if(id == 0 || id == 1) {
+            s.putUser("marco", u);
+            //s.send("Olá", addresses.get(0));
+        }
+        //else
+          //  s.localPutUser("marco", u);
     }
 }

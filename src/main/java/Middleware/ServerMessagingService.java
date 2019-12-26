@@ -21,8 +21,6 @@ import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class ServerMessagingService {
     private int id;
@@ -52,11 +50,7 @@ public class ServerMessagingService {
         this.coh = new CausalOrderHandler(id, pSize, s, log);
     }
 
-    //public void start(){
-      //  mms.start();
-    //}
-
-    public <T> void registerOperation(String type, Function<T,T> callback){
+    public <T> void registerOperation(String type, Function<T,Object> callback){
         mms.registerHandler(type, (a,b) -> {
             return s.encode(callback.apply(s.decode(b)));
         }, e);
@@ -80,11 +74,19 @@ public class ServerMessagingService {
         },e);
     }
 
-    public <T> CompletableFuture<Void> sendAndReceiveToCluster(String type, T content, Function<T,T> callback){
-        List<CompletableFuture<T>> requests = new ArrayList<>();
+    public <T> CompletableFuture<Void> sendAndReceiveToCluster(String type, T content, Consumer<T> callback){
+        List<CompletableFuture<Void>> requests = new ArrayList<>();
         for (Address a : participants){
             requests.add(mms.sendAndReceive(a, type, s.encode(content))
-                        .thenApply(x -> callback.apply(s.decode(x))));
+                        .thenAccept(x -> callback.accept(s.decode(x))));
+        }
+        return CompletableFuture.allOf(requests.toArray(new CompletableFuture[0]));
+    }
+
+    public <T> CompletableFuture<Void> sendAndReceiveToCluster(String type, T content){
+        List<CompletableFuture<byte[]>> requests = new ArrayList<>();
+        for (Address a : participants){
+            requests.add(mms.sendAndReceive(a, type, s.encode(content)));
         }
         return CompletableFuture.allOf(requests.toArray(new CompletableFuture[0]));
     }
@@ -111,8 +113,9 @@ public class ServerMessagingService {
 
     public CompletableFuture<Void> sendAsyncToCluster(String type, Object content) {
         System.out.println("sms:sendAsyncToCluster ->");
-        for (Address a : participants)
+        for (Address a : participants){
             mms.sendAsync(a, type, s.encode(content));
+        }
         return CompletableFuture.completedFuture(null);
     }
 

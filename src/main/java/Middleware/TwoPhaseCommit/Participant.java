@@ -10,23 +10,24 @@ import java.util.function.Function;
 
 
 public class Participant {
-    private int id;
     private ServerMessagingService sms;
     private Address manager;
     private Logger log;
 
-    public Participant(int id, ServerMessagingService sms, Address manager){
-        this.id = id;
+    public Participant(ServerMessagingService sms, Address manager, Logger log){
         this.sms = sms;
         this.manager = manager;
+        this.log = log;
     }
 
     public CompletableFuture<TransactionMessage> begin(String name){
+        System.out.println("participant:begin -> begining transaction");
         TransactionMessage tm = new TransactionMessage(name);
         return sms.sendAndReceive(manager,"begin", tm);
     }
 
     public CompletableFuture<TransactionMessage> commit(TransactionMessage tm){
+        System.out.println("participant:commit -> commiting transaction");
         tm.setType('t');
         return sms.sendAndReceive(manager, "commit", tm);
     }

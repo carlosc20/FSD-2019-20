@@ -41,4 +41,12 @@ public class User implements Mapped<String> {
     public String getKey(){
         return name;
     }
+
+    @Override
+    public String toString() {
+        return "User{" +
+                "name='" + name + '\'' +
+                ", password='" + password + '\'' +
+                '}';
+    }
 }
