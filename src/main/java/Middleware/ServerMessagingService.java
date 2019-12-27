@@ -60,6 +60,10 @@ public class ServerMessagingService {
         mms.registerHandler(type, (a,b) -> {callback.accept(s.decode(b));}, e);
     }
 
+    public void registerCompletableOperation(String type, BiFunction<Address, byte[], CompletableFuture<byte[]>> callback){
+        mms.registerHandler(type, callback);
+    }
+
     public <T> void registerOperation(String type, BiConsumer<Address,byte[]> callback){
         mms.registerHandler(type, callback, e);
     }

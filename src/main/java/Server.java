@@ -1,9 +1,9 @@
 import Logic.Publisher;
-import Logic.PublisherImpl;
-import Logic.User;
 import Middleware.GlobalSerializer;
 import Middleware.Logging.Logger;
 import Middleware.Marshalling.MessageAuth;
+import Middleware.Marshalling.MessageSend;
+import Middleware.Marshalling.MessageSub;
 import Middleware.ServerMessagingService;
 import io.atomix.utils.net.Address;
 import io.atomix.utils.serializer.Serializer;
@@ -12,9 +12,11 @@ import io.atomix.utils.serializer.Serializer;
 import java.util.*;
 
 public class Server {
+
     private int id; //para debug
     private ServerMessagingService sms;
-    Publisher publisher;
+    private Publisher publisher;
+    private Serializer s = new GlobalSerializer().getS();
 
     public Server(int id, Address address, List<Address> servers, Address manager){
          this.id = id;
@@ -29,71 +31,110 @@ public class Server {
         startListeningToLogins();
         startListeningToRegisters();
         startListeningToPublishes();
-        startListeningToSubscriptions();
-        startListeningToGetSubs();
+        startListeningToGets();
+        startListeningToSubOperations();
     }
 
-    //Receção de tópicos
-    private void startListeningToPublishes(){
-        //Pode haver return nos handlers se necessário
-        //Envios de clientes
-        sms.registerOperation("clientPublish", (a,b)->{
-               //TODO mete em algum lado neste servidor
-                sms.sendCausalOrderAsyncToCluster("publish", b);
-        });
-        //Envios de servidores
-        sms.registerOrderedOperation("publish", msg -> {
-            //TODO mete em algum lado neste servidor
-        });
-    }
-
+    /*
+        Recebe clientRegister e devolve boolean conforme sucesso do registo e atualiza publisher.
+        Recebe register e atualiza publisher.
+     */
     private void startListeningToRegisters(){
-        sms.registerOperation("clientRegister", (a,b)->{
+        sms.registerCompletableOperation("clientRegister", (a,b)->{
             MessageAuth msg = sms.decode(b);
-            //TODO meter algures o registo
-            //O que envias aqui é duvidoso. CompletableFuture ?
-            sms.sendAsyncToCluster("register", sms.encode(publisher.register(msg.getUsername(),msg.getPassword())));
-            return sms.encode(true); // resultado do registar
+            return publisher.register(msg.getUsername(), msg.getPassword()).thenApply(success -> {
+                if(success) {
+                    sms.sendAsyncToCluster("register", b);
+                    return s.encode(true);
+                }
+                else
+                    return s.encode(false);
+            });
         });
         sms.registerOperation("register", (a,b) ->{
-            //TODO inserir o registo
-        });
-    }
-
-    private void startListeningToLogins(){
-        sms.registerOperation("clientLogin", (a,b)->{
             MessageAuth msg = sms.decode(b);
+            publisher.register(msg.getUsername(), msg.getPassword());
+        });
+    }
+
+    /*
+        Recebe clientLogin e devolve boolean conforme sucesso da autenticação.
+     */
+    private void startListeningToLogins(){
+        sms.registerCompletableOperation("clientLogin", (a,b)->{
+            MessageAuth msg = s.decode(b);
+            return publisher.login(msg.getUsername(), msg.getPassword()).thenApply(s::encode);
+        });
+    }
+
+
+    /*
+        Recebe clientPublish, atualiza publisher e devolve FEEDBACK
+        Recebe publish, atualiza publisher
+     */
+    private void startListeningToPublishes(){
+        sms.registerCompletableOperation("clientPublish", (a,b)->{
+            MessageSend msg = s.decode(b);
+            return publisher.publish(msg.getUsername(), msg.getPassword(), msg.getText(), msg.getTopics()).thenApply(nada -> {
+                //TODO
+                sms.sendCausalOrderAsyncToCluster("publish", b);
+                return null;
+            });
+        });
+        sms.registerOrderedOperation("publish", msg -> {
             //TODO
-            //Logic.User u = publisher.getUser();
-            User u = null;
-            if(u !=null){
-                //Session session = new SessionImpl(feed, u);
-                //sessions.put(a,session);
-                sms.sendAsyncToCluster("login", sms.encode(publisher.login(msg.getUsername(), msg.getPassword())));
-                return sms.encode(true);
-            }
-        return sms.encode(false);
         });
     }
 
-    private void startListeningToSubscriptions(){
-        sms.registerOperation("clientSubscription", (a,b)->{
-            //TODO subscrição
-            sms.sendAsyncToCluster("subscription", b);
+    /*
+        Recebe clientGetSubs e clientGetPosts, devolve o pedido
+     */
+    private void startListeningToGets(){
+        sms.registerCompletableOperation("clientGetSubs", (a,b)->{
+            MessageAuth msg = s.decode(b);
+            return publisher.getSubscriptions(msg.getUsername(), msg.getPassword()).thenApply(s::encode);
         });
-        sms.registerOperation("subscription", (a,b) ->{
-            //TODO addSubscription
-        });
-    }
-
-    private void startListeningToGetSubs(){
-        sms.registerOperation("getSubs", (a,b)->{
-            //Session session = sessions.get(a);
-            //return sms.encode(session.getSubscriptions());
+        sms.registerCompletableOperation("clientGetPosts", (a,b)->{
+            MessageAuth msg = s.decode(b);
+            return publisher.getLast10(msg.getUsername(), msg.getPassword()).thenApply(s::encode);
         });
     }
 
-    //Testes .........----------------//--------------.........
+
+    /*
+        Recebe clientAddSub, clientRemoveSub, addSub e removeSub e atualiza o publisher
+    */
+    private void startListeningToSubOperations(){
+        sms.registerCompletableOperation("clientAddSub", (a,b)->{
+            MessageSub msg = sms.decode(b);
+            return publisher.addSubscription(msg.getUsername(), msg.getPassword(), msg.getName()).thenApply(nada -> {
+                // TODO
+                sms.sendAsyncToCluster("addSub", b);
+                return null; // ????
+            });
+        });
+        sms.registerOperation("addSub", (a,b) ->{
+            MessageAuth msg = sms.decode(b);
+            // TODO
+        });
+
+        sms.registerCompletableOperation("clientRemoveSub", (a,b)->{
+            MessageSub msg = sms.decode(b);
+            return publisher.removeSubscription(msg.getUsername(), msg.getPassword(), msg.getName()).thenApply(success -> {
+                // TODO
+                sms.sendAsyncToCluster("removeSub", b);
+                return null; // ????
+            });
+        });
+        sms.registerOperation("removeSub", (a,b) ->{
+            MessageAuth msg = sms.decode(b);
+            // TODO
+        });
+    }
+
+
+
+    //Testes ..............................................................................................
 
 /*
     public void putUser(String name, User u){

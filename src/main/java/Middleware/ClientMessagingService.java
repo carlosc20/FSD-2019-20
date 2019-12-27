@@ -5,6 +5,7 @@ import io.atomix.cluster.messaging.MessagingConfig;
 import io.atomix.cluster.messaging.impl.NettyMessagingService;
 import io.atomix.utils.net.Address;
 
+import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 
 public class ClientMessagingService {
@@ -17,9 +18,6 @@ public class ClientMessagingService {
                 "client",
                 address,
                 new MessagingConfig());
-    }
-
-    public void start(){
         mms.start();
     }
 
@@ -28,6 +26,6 @@ public class ClientMessagingService {
     }
 
     public CompletableFuture<byte[]> sendAndReceive(byte[] data, String type){
-        return mms.sendAndReceive(server, type, data);
+        return mms.sendAndReceive(server, type, data, Duration.ofSeconds(3));
     }
 }

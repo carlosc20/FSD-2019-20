@@ -1,4 +1,7 @@
-package Logic;
+import Logic.CircularArray;
+import Logic.Post;
+import Logic.Publisher;
+import Logic.User;
 
 import Middleware.TwoPhaseCommit.TransactionalStructures.DistributedTransactionalMap;
 import Middleware.Logging.Logger;
@@ -81,7 +84,7 @@ public class PublisherImpl implements Publisher {
     }
 
     @Override
-    public void publish(String username, String password, String text, List<String> topics) {
+    public CompletableFuture<Void> publish(String username, String password, String text, List<String> topics) {
         User user = getAuthenticatedUser(username, password);
         if(user != null) {
             // TODO calcular id
@@ -92,22 +95,25 @@ public class PublisherImpl implements Publisher {
                     l.add(post);
             }
         }
+        return CompletableFuture.completedFuture(null);
     }
 
     @Override
-    public void addSubscription(String username, String password, String name) {
+    public CompletableFuture<Void> addSubscription(String username, String password, String name) {
         User user = getAuthenticatedUser(username, password);
         if(user != null) {
             user.addSubscription(name);
         }
+        return CompletableFuture.completedFuture(null);
     }
 
     @Override
-    public void removeSubscription(String username, String password, String name) {
+    public CompletableFuture<Void> removeSubscription(String username, String password, String name) {
         User user = getAuthenticatedUser(username, password);
         if(user != null) {
             user.removeSubscription(name);
         }
+        return CompletableFuture.completedFuture(null);
     }
 
 

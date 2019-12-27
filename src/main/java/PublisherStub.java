@@ -23,13 +23,12 @@ public class PublisherStub implements Publisher {
     public PublisherStub(Address server) {
         final int port = 12345;
         ms = new ClientMessagingService(server, Address.from(port));
-        ms.start();
     }
 
     @Override
     public CompletableFuture<Boolean> login(String username, String password) {
         MessageAuth msg = new MessageAuth(username, password);
-        return ms.sendAndReceive(s.encode(msg),"ClientLogin").thenCompose(s::decode);
+        return ms.sendAndReceive(s.encode(msg),"clientLogin").thenCompose(s::decode);
     }
 
     @Override
@@ -41,31 +40,31 @@ public class PublisherStub implements Publisher {
     @Override
     public CompletableFuture<List<String>> getSubscriptions(String username, String password) {
         MessageAuth msg = new MessageAuth(username, password);
-        return ms.sendAndReceive(s.encode(msg),"getSubs").thenCompose(s::decode);
+        return ms.sendAndReceive(s.encode(msg),"clientGetSubs").thenCompose(s::decode);
     }
 
     @Override
-    public void addSubscription(String username, String password, String name) {
+    public CompletableFuture<Void> addSubscription(String username, String password, String name) {
         MessageSub msg = new MessageSub(username, password, name);
-        ms.send(s.encode(msg),"addSub");
+        return ms.sendAndReceive(s.encode(msg),"clientAddSub").thenCompose(s::decode);
     }
 
     @Override
-    public void removeSubscription(String username, String password, String name) {
+    public CompletableFuture<Void> removeSubscription(String username, String password, String name) {
         MessageSub msg = new MessageSub(username, password, name);
-        ms.send(s.encode(msg),"removeSub");
+        return ms.sendAndReceive(s.encode(msg),"clientRemoveSub").thenCompose(s::decode);
     }
 
     @Override
-    public void publish(String username, String password, String text, List<String> topics) {
-        MessageSend message = new MessageSend(username, password, topics, text);
-        ms.send(s.encode(message),"clientPublish");
+    public CompletableFuture<Void> publish(String username, String password, String text, List<String> topics) {
+        MessageSend msg = new MessageSend(username, password, topics, text);
+        return ms.sendAndReceive(s.encode(msg),"clientPublish").thenCompose(s::decode);
     }
 
     @Override
     public CompletableFuture<List<Post>> getLast10(String username, String password) {
         MessageAuth msg = new MessageAuth(username, password);
-        return ms.sendAndReceive(s.encode(msg),"get10").thenCompose(s::decode);
+        return ms.sendAndReceive(s.encode(msg),"clientGetPosts").thenCompose(s::decode);
     }
 
 }

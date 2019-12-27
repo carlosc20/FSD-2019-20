@@ -25,7 +25,6 @@ public class User implements Mapped<String> {
         return password;
     }
 
-
     public List<String> getSubscriptions() {
         return subscriptions;
     }
