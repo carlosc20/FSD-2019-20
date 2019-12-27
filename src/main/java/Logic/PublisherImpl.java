@@ -1,6 +1,6 @@
 package Logic;
 
-import Middleware.DistributedStructures.DistributedTransactionalMap;
+import Middleware.TwoPhaseCommit.TransactionalStructures.DistributedTransactionalMap;
 import Middleware.Logging.Logger;
 import Middleware.Recovery;
 import Middleware.ServerMessagingService;

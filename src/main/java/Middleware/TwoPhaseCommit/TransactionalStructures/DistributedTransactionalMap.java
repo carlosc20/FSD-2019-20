@@ -1,4 +1,4 @@
-package Middleware.DistributedStructures;
+package Middleware.TwoPhaseCommit.TransactionalStructures;
 
 import Middleware.Logging.Logger;
 import Middleware.ServerMessagingService;

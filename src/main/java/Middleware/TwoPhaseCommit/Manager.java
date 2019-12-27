@@ -1,11 +1,8 @@
 package Middleware.TwoPhaseCommit;
 
-import Middleware.DistributedStructures.MapMessage;
 import Middleware.GlobalSerializer;
 import Middleware.Logging.Logger;
-import Middleware.CausalOrder.CausalOrderHandler;
 import Middleware.ServerMessagingService;
-import io.atomix.cluster.messaging.ManagedMessagingService;
 import io.atomix.utils.net.Address;
 import io.atomix.utils.serializer.Serializer;
 
@@ -13,11 +10,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.function.BiConsumer;
-import java.util.function.Function;
 
 public class Manager {
     private int numTransactions;

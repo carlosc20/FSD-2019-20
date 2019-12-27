@@ -2,7 +2,7 @@ package Middleware;
 
 import Logic.User;
 import Middleware.CausalOrder.VectorMessage;
-import Middleware.DistributedStructures.MapMessage;
+import Middleware.TwoPhaseCommit.TransactionalStructures.MapMessage;
 import Middleware.Marshalling.MessageAuth;
 import Middleware.Marshalling.MessageRecovery;
 import Middleware.Marshalling.MessageSend;
