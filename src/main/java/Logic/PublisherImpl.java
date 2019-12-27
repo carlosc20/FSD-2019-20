@@ -1,8 +1,10 @@
 package Logic;
 
+import Middleware.DistributedStructures.DistributedTransactionalMap;
 import Middleware.Logging.Logger;
+import Middleware.Recovery;
 import Middleware.ServerMessagingService;
-import Middleware.TwoPhaseCommit.Participant;
+import io.atomix.utils.net.Address;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -11,18 +13,20 @@ import java.util.concurrent.CompletableFuture;
 
 public class PublisherImpl implements Publisher {
 
-    private HashMap<String, User> users;
+    private DistributedTransactionalMap<String, User> users;
 
     private HashMap<String, CircularArray<Post>> posts;
 
+    private Recovery recovery;
 
 
-    public PublisherImpl(List<String> topics) {
-        this.users = new HashMap<>();
+    public PublisherImpl(List<String> topics, ServerMessagingService sms, Address manager, Logger log) {
+        this.users = new DistributedTransactionalMap<>("users", sms, manager, log);
         this.posts = new HashMap<>();
         for(String topic: topics) {
             posts.put(topic, new CircularArray<>(10));
         }
+        this.recovery = new Recovery(sms, log);
     }
 
     private User getAuthenticatedUser(String username, String password) {

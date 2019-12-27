@@ -6,35 +6,71 @@ import java.util.*;
 
 public class TransactionState {
     private Set<Address> states;
-    private int notReadyCounter;
-    private int state; //0->unCommited, 1->commited, 2->aborted
+    private Object content;
+    private int firstPhaseNotFinishedCounter;
+    private int secondPhaseNotFinishedCounter;
+    private char state;
 
-    public TransactionState(List<Address> participants){
-        this.state = 0;
+    public TransactionState(List<Address> participants, Object content){
+        this.state = 'p';
+        this.content = content;
         this.states = new HashSet<>();
         for(Address a : participants)
             states.add(a);
-        notReadyCounter = participants.size();
+        firstPhaseNotFinishedCounter = participants.size();
+        secondPhaseNotFinishedCounter = participants.size();
     }
 
-    public boolean insertAndReadyToCommit(Address a){
+    public boolean insertAndAllAnsweredFirstPhase(Address a){
         if(!states.contains(a)){
             states.add(a);
-            notReadyCounter--;
+            firstPhaseNotFinishedCounter--;
         }
-        return notReadyCounter == 0;
+        if(firstPhaseNotFinishedCounter == 0){
+            states.clear();
+            return true;
+        }
+        return false;
+    }
+
+    public boolean insertAndAllAnsweredSecondPhase(Address a){
+        if(!states.contains(a)){
+            states.add(a);
+            secondPhaseNotFinishedCounter--;
+        }
+        return secondPhaseNotFinishedCounter == 0;
+    }
+
+    public void firstPhaseFinished(){
+        this.firstPhaseNotFinishedCounter = 0;
     }
 
     public void setCommited() {
-        this.state = 1;
+        this.state = 'c';
+    }
+
+    public boolean isAborted(){
+        return state == 'a';
+    }
+
+    public  boolean isPrepared(){
+        return  state == 'p';
+    }
+
+    public boolean isCommited(){
+        return state == 'c';
     }
 
     public void setAborted() {
-        this.state = 2;
+        this.state = 'a';
     }
 
-    public int getState() {
-        return state;
+    public int getFirstPhaseNotFinishedCounter() {
+        return firstPhaseNotFinishedCounter;
+    }
+
+    public Object getContent(){
+        return content;
     }
 
     public static void main(String[] args) {
@@ -44,9 +80,9 @@ public class TransactionState {
         for(int i = 0; i < n; i++) {
             servers.add(Address.from(port + i));
         }
-        TransactionState ts = new TransactionState(servers);
-        System.out.println(ts.insertAndReadyToCommit(servers.get(0)));
-        System.out.println(ts.insertAndReadyToCommit(servers.get(1)));
-        System.out.println(ts.insertAndReadyToCommit(servers.get(2)));
+        //TransactionState ts = new TransactionState(servers);
+        //System.out.println(ts.insertAndAllAnswered(servers.get(0)));
+        //System.out.println(ts.insertAndAllAnswered(servers.get(1)));
+        //System.out.println(ts.insertAndAllAnswered(servers.get(2)));
     }
 }

@@ -16,9 +16,7 @@ public class TransactionalObject<V extends Mapped> implements Mapped{
         this.state= true;
     }
 
-    public boolean getState(){
-        return this.state;
-    }
+    public boolean isCommited(){return this.state;}
 
     public V getObject() {
         return object;

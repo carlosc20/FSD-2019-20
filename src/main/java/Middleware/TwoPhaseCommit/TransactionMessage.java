@@ -3,13 +3,17 @@ package Middleware.TwoPhaseCommit;
 public class TransactionMessage<V>  {
     private int transactionId;
     private char type;
-    private String operationName;
     private V content;
 
-    public TransactionMessage(int transactionId, String operationName, V content){
+    public TransactionMessage(V content){
+        this.transactionId = -1;
+        this.type = 'b';
+        this.content = content;
+    }
+
+    public TransactionMessage(int transactionId, V content){
         this.transactionId = transactionId;
         this.type = 'b';
-        this.operationName = operationName;
         this.content = content;
     }
 
@@ -17,16 +21,36 @@ public class TransactionMessage<V>  {
         return transactionId;
     }
 
-    public char getType() {
-        return type;
+    public void setTransactionId(int transactionId) {
+        this.transactionId = transactionId;
     }
 
-    public void setType(char type) {
-        this.type = type;
+    public void setCommited(){
+        this.type = 'c';
     }
 
-    public String getOperationName() {
-        return operationName;
+    public void setAborted(){
+        this.type = 'a';
+    }
+
+    public void setPrepared(){
+        this.type = 'p';
+    }
+
+    public boolean notVoted(){
+        return type == 'b';
+    }
+
+    public boolean isAborted(){
+        return type == 'a';
+    }
+
+    public  boolean isPrepared(){
+        return  type == 'p';
+    }
+
+    public boolean isCommited(){
+        return type == 'c';
     }
 
     public V getContent() {

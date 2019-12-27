@@ -2,26 +2,26 @@ package Middleware.Marshalling;
 
 public class MessageRecovery {
     int id; //SENDER id
-    int clock; //receiver clock in sender coh
+    int savepoint; //receiver clock in sender coh
 
-    public MessageRecovery(int id, int clock){
+    public MessageRecovery(int id, int savepoint){
         this.id = id;
-        this.clock = clock;
+        this.savepoint = savepoint;
     }
 
     public int getId() {
         return id;
     }
 
-    public int getClock() {
-        return clock;
+    public int getSavepoint() {
+        return savepoint;
     }
 
     @Override
     public String toString() {
         return "MessageRecovery{" +
                 "id=" + id +
-                ", clock=" + clock +
+                ", clock=" + savepoint +
                 '}';
     }
 }

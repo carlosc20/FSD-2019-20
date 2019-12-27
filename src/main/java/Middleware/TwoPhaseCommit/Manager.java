@@ -1,5 +1,6 @@
 package Middleware.TwoPhaseCommit;
 
+import Middleware.DistributedStructures.MapMessage;
 import Middleware.GlobalSerializer;
 import Middleware.Logging.Logger;
 import Middleware.CausalOrder.CausalOrderHandler;
@@ -16,10 +17,11 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.BiConsumer;
+import java.util.function.Function;
 
 public class Manager {
     private int numTransactions;
-    private Map<Integer, Integer> transactions; //1-> commit, 2 -> abort
+    private Map<Integer, TransactionState> transactions;
     private List<Address> staticParticipants;
     private Serializer s;
     private Logger log;
@@ -32,50 +34,100 @@ public class Manager {
         this.log = new Logger("logs", "Manager", s);
         this.sms = new ServerMessagingService(id, address, participants, log);
         this.staticParticipants = participants;
+        start();
     }
 
-    public void startTwoPhaseCommit(){
-        sms.<TransactionMessage>registerOperation("begin", tm -> {
-            //TODO tirar o tm
-            return beginTransaction();
+    public void start(){
+        sms.registerOperation("startTransaction", (a,b) -> {
+            TransactionMessage tm = sms.decode(b);
+            beginTransaction(tm);
+            log.write(tm);
+            sms.sendAsyncToCluster("firstphase", tm);
+            return sms.encode(0);
         });
-        sms.<TransactionMessage>registerOperation("commit", tm ->{
-            tm.setType('p');
-            sms.sendAndReceiveToCluster("firstphase", tm, received->{
-                if(received.getType() == 'a'){
-                    System.out.println("manager -> Transaction id==" + received.getTransactionId() + "an abort has been received");
-                    transactions.put(received.getTransactionId(), 2);
+
+        sms.registerOperation("firstphase", (a,b) -> {
+            TransactionMessage tm = sms.decode(b);
+            TransactionState ts = transactions.get(tm.getTransactionId());
+            //1º if -> caso de uma confirmação repedida
+            if(ts.getFirstPhaseNotFinishedCounter() != 0){
+                System.out.println("manager:firstphasereg -> received a reponse " + tm.toString());
+                if(tm.isAborted()) ts.setAborted();
+                if(ts.insertAndAllAnsweredFirstPhase(a)){
+                    if(ts.isAborted()){
+                        tm.setAborted();
+                        System.out.println("manager:firstphasereg -> aborting tid == " + tm.getTransactionId());
+                    }
+                    else{
+                        tm.setCommited();
+                        System.out.println("manager:firstphasereg -> commiting tid == " + tm.getTransactionId());
+                    }
+                    log.write(tm);
+                    sms.sendAsyncToCluster("secondphase", tm);
                 }
-            }).thenAccept(x ->{
-                System.out.println("manager -> Transaction id==" + tm.getTransactionId() + "first phase finished");
-                if(transactions.get(tm.getTransactionId()) == 1){
-                    tm.setType('c');
-                    System.out.println("manager-> Transaction id==" + tm.getTransactionId() + "status == commited");
+            }
+        });
+
+        sms.registerOperation("secondphase", (a,b) ->{
+            TransactionMessage tm = sms.decode(b);
+            int tid = tm.getTransactionId();
+            //1º if -> caso de uma confirmação repedida
+            if(transactions.containsKey(tid)){
+                System.out.println("manager:secondphasereg -> Received second-phase confirmation from " + a);
+                TransactionState ts = transactions.get(tid);
+                if(ts.insertAndAllAnsweredSecondPhase(a)){
+                    System.out.println("manager:secondphasereg -> removing entry to tid == " + tm.getTransactionId());
+                    transactions.remove(tid);
                 }
-                else{
-                    tm.setType('a');
-                    System.out.println("manager -> Transaction id==" + tm.getTransactionId() + "status == aborted");
-                }
-                sms.sendAsyncToCluster("secondphase", tm);
-            });
+            }
+        });
+
+        sms.registerOperation("recovery", (a,b) -> {
+            int requested = sms.decode(b);
+            int maxSize = transactions.size();
+            for(int i = requested; i<maxSize; i++){
+                TransactionMessage tm = new TransactionMessage(i, transactions.get(i).getContent());
+                //acho que enviar para um resolve
+                sms.sendAsync(a,"firstphase", tm);
+            }
         });
     }
 
-    private int beginTransaction(){
+    private void beginTransaction(TransactionMessage tm){
         numTransactions++;
         System.out.println("manager -> transaction request id " + numTransactions);
         //Identifier ident = new Identifier(numTransactions, id);
-        transactions.put(numTransactions, 1);
-        return numTransactions;
+        transactions.put(numTransactions, new TransactionState(staticParticipants, tm.getContent()));
+        tm.setTransactionId(numTransactions);
+        tm.setPrepared();
     }
-    //TODO arranjar maneira de a não confirmação de uma transação não bloquear outras transações
+
+    private void recover(){
+        HashMap<Integer, TransactionMessage> auxiliar = new HashMap<>();
+        log.recover((msg) ->{
+            TransactionMessage tm = (TransactionMessage) msg;
+            auxiliar.put(tm.getTransactionId(), tm);
+        });
+        for(TransactionMessage tm : auxiliar.values()){
+            if(tm.isPrepared()){
+                transactions.put(tm.getTransactionId(), new TransactionState(staticParticipants, tm.getContent()));
+                sms.sendAsyncToCluster("firstphase", tm);
+            }
+            else{
+                TransactionState ts = new TransactionState(staticParticipants, tm.getContent());
+                ts.firstPhaseFinished();
+                transactions.put(tm.getTransactionId(), ts);
+                sms.sendAsyncToCluster("secondphase", tm);
+            }
+        }
+    }
 
     public static void main(String[] args) {
         ArrayList<Address> addresses = new ArrayList<>();
         Address manager = Address.from("localhost", 20000);
-        for(int i = 0; i<3; i++){
+        for(int i = 0; i<2; i++){
             addresses.add(Address.from("localhost",10000 + i));
         }
-        new Manager(100, manager, addresses).startTwoPhaseCommit();
+        new Manager(100, manager, addresses).start();
     }
 }

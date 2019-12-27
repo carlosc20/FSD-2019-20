@@ -1,47 +1,36 @@
 import Logic.Publisher;
+import Logic.PublisherImpl;
 import Logic.User;
-import Middleware.DistributedStructures.DistributedTransactionalMap;
 import Middleware.GlobalSerializer;
 import Middleware.Logging.Logger;
 import Middleware.Marshalling.MessageAuth;
-import Middleware.Recovery;
 import Middleware.ServerMessagingService;
-import Middleware.TwoPhaseCommit.Participant;
 import io.atomix.utils.net.Address;
 import io.atomix.utils.serializer.Serializer;
+
 
 import java.util.*;
 
 public class Server {
     private int id; //para debug
     private ServerMessagingService sms;
-    private Publisher publisher;
-    private Serializer s;
-    private Recovery r;
-    private DistributedTransactionalMap<String, User> users;
+    Publisher publisher;
 
     public Server(int id, Address address, List<Address> servers, Address manager){
          this.id = id;
-         this.s = new GlobalSerializer().getS();
+         Serializer s = new GlobalSerializer().getS();
          Logger log = new Logger("logs", "Server" + id, s);
          this.sms = new ServerMessagingService(id, address, servers, log);
-         //this.publisher = new PublisherImpl();
-         this.r = new Recovery(sms,log);
-         Participant p = new Participant(sms, manager, log);
-         this.users = new DistributedTransactionalMap<>("users", sms, p, log);
-         //users.registerDistributedTransactionalPut();
+         List<String> topics = new ArrayList<>();
+         this.publisher = new PublisherImpl(topics, sms, manager, log);
     }
 
-
     public void start(){
-       // sms.start();
         startListeningToLogins();
         startListeningToRegisters();
         startListeningToPublishes();
         startListeningToSubscriptions();
         startListeningToGetSubs();
-        //TODO
-        r.start(x -> {});
     }
 
     //Receção de tópicos
@@ -106,7 +95,7 @@ public class Server {
 
     //Testes .........----------------//--------------.........
 
-
+/*
     public void putUser(String name, User u){
         users.put(name, u);
     }
@@ -114,7 +103,7 @@ public class Server {
     public void localPutUser(String name, User u){
         users.localPut(name, u);
     }
-
+*/
 
     public void startListeningToText(){
         sms.registerOperation("spreadText", (a,b)->{
@@ -123,7 +112,6 @@ public class Server {
         });
         sms.registerOrderedOperation("text", msg->
             System.out.println("server:startListeningToText -> received: " + msg.toString()));
-        r.start(x -> {});
     }
 
     public void send(String text, Address a){
@@ -134,18 +122,18 @@ public class Server {
     public static void main(String[] args) throws InterruptedException {
         ArrayList<Address> addresses = new ArrayList<>();
         Address manager = Address.from("localhost", 20000);
-        for(int i = 0; i<3; i++){
+        for(int i = 0; i<2; i++){
             addresses.add(Address.from("localhost",10000 + i));
         }
         int id = Integer.parseInt(new Scanner(System.in).nextLine());
         Thread.sleep(5000);
         Server s = new Server(id, addresses.get(id), addresses, manager);
-        User u = new User("marco", "123");
+        s.publisher.register("marco", "123");
         //s.startListeningToText();
-        if(id == 0 || id == 1) {
-            s.putUser("marco", u);
+        //if(id == 0 || id == 1) {
+            //s.putUser("marco", u);
             //s.send("Olá", addresses.get(0));
-        }
+        //}
         //else
           //  s.localPutUser("marco", u);
     }

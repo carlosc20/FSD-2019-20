@@ -72,7 +72,7 @@ public class COHRecovery {
     }
 
     public boolean getMissingOperations(MessageRecovery mr, Consumer<VectorMessage> callback){
-        int senderClock = mr.getClock();
+        int senderClock = mr.getSavepoint();
         int numOp = nonAcknowledgedOperations.size();
         System.out.println("cohr:getMissingOperations -> sender clock " + senderClock);
         System.out.println("cohr:getMissingOperations -> number of unacked operations " + numOp);

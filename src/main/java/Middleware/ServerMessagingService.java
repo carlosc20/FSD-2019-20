@@ -60,7 +60,7 @@ public class ServerMessagingService {
         mms.registerHandler(type, (a,b) -> {callback.accept(s.decode(b));}, e);
     }
 
-    public void registerOperation(String type, BiConsumer<Address,byte[]> callback){
+    public <T> void registerOperation(String type, BiConsumer<Address,byte[]> callback){
         mms.registerHandler(type, callback, e);
     }
 
@@ -90,7 +90,6 @@ public class ServerMessagingService {
         }
         return CompletableFuture.allOf(requests.toArray(new CompletableFuture[0]));
     }
-
 
     /*
     CompletableFuture.allOf(requests.toArray(new CompletableFuture[requests.size()]))
