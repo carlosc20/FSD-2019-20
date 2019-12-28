@@ -97,7 +97,7 @@ public class Server {
     /*
     Recebe clientPublish, atualiza publisher e devolve FEEDBACK
     Recebe publish, atualiza publisher
- */
+    */
     private void startListeningToPublishes(){
         // client
         sms.registerCompletableOperation("clientPublish", (a,b)->{

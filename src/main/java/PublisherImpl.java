@@ -10,6 +10,7 @@ import Middleware.ServerMessagingService;
 import io.atomix.utils.net.Address;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -17,44 +18,22 @@ import java.util.function.Consumer;
 
 public class PublisherImpl implements Publisher {
 
-    private TransactionalMap<String, User> users;
 
-    private ServerMessagingService sms;
+
+    private TransactionalMap<String, User> users;
+    private int lastPostId;
     private HashMap<String, CircularArray<Post>> posts;
+    private static final int n = 10; // nr de posts devolvidos no getLast
+
 
     public PublisherImpl(List<String> topics, ServerMessagingService sms, Address manager, Logger log) {
-        this.sms = sms;
+        this.lastPostId = 0;
         this.users = new TransactionalMap<>(sms, manager, log);
         this.posts = new HashMap<>();
         for(String topic: topics) {
-            posts.put(topic, new CircularArray<>(10));
+            posts.put(topic, new CircularArray<>(n));
         }
-        sms.causalOrderRecover(recoverOperations, log);
     }
-
-    private void startListeningToNeighboursPublishes(){
-        sms.registerOrderedOperation("publish", msg -> {
-            //TODO
-        });
-    }
-
-    private void startListeningToNeighboursSubOperations(){
-        sms.registerOperation("addSub", (a,b) ->{
-            MessageAuth msg = sms.decode(b);
-            // TODO
-        });
-
-        sms.registerOperation("removeSub", (a,b) ->{
-            MessageAuth msg = sms.decode(b);
-            // TODO
-        });
-
-    }
-
-    private Consumer<Object> recoverOperations = (content) -> {
-        //TODO
-    };
-
 
     @Override
     public CompletableFuture<Boolean> login(String username, String password) {
@@ -75,15 +54,15 @@ public class PublisherImpl implements Publisher {
 
     @Override
     public CompletableFuture<List<Post>> getLast10(String username) {
-        final int n = 10;
+
         User user = users.get(username);
         List<String> subs = user.getSubscriptions();
-        ArrayList<Post> a = new ArrayList<>(subs.size() * n);
+        ArrayList<Post> posts = new ArrayList<>(subs.size() * n);
         for(String sub: subs) {
-            a.addAll(posts.get(sub).getAll());
+            posts.addAll(this.posts.get(sub).getAll());
         }
-        // TODO sort com comparator por id
-        return CompletableFuture.completedFuture(a.subList(a.size() - n, a.size()));
+        posts.sort(Comparator.comparing(Post::getId));
+        return CompletableFuture.completedFuture(posts.subList(posts.size() - n, posts.size()));
 
     }
 
@@ -95,8 +74,8 @@ public class PublisherImpl implements Publisher {
 
     @Override
     public CompletableFuture<Void> publish(String username, String text, List<String> topics) {
-        // TODO calcular id
-        Post post = new Post(0, username, text, topics);
+        Post post = new Post(lastPostId, username, text, topics);
+        lastPostId++;
         for(String topic: topics) {
             CircularArray<Post> l = posts.get(topic);
             if(l != null)

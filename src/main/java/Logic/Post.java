@@ -15,4 +15,20 @@ public class Post {
         this.text = text;
         this.topics = topics;
     }
+
+    public int getId() {
+        return id;
+    }
+
+    public String getPoster() {
+        return poster;
+    }
+
+    public String getText() {
+        return text;
+    }
+
+    public List<String> getTopics() {
+        return topics;
+    }
 }
