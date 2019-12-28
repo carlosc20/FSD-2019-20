@@ -1,6 +1,6 @@
 package Middleware.TwoPhaseCommit;
 
-import Middleware.TwoPhaseCommit.TransactionalStructures.Mapped;
+import Middleware.TwoPhaseCommit.DistributedObjects.Mapped;
 
 public class TransactionalObject<V extends Mapped> implements Mapped{
     private V object;

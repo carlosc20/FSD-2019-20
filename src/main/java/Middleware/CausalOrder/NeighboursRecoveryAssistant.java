@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
-public class COHRecovery {
+public class NeighboursRecoveryAssistant {
     //TODO
     //que este servidor enviou, Integer(meu clock)
     //guardar o que os outros servidores registam como o meu clock
@@ -20,7 +20,7 @@ public class COHRecovery {
     private HashMap<Integer, VectorMessage> nonAcknowledgedOperations;
     private Logger log;
 
-    public COHRecovery(int id, Serializer s, List<Integer> vector, Logger log) {
+    public NeighboursRecoveryAssistant(int id, Serializer s, List<Integer> vector, Logger log) {
         this.id = id;
         this.s = s;
         this.myClockOnCluster = new ArrayList<>();
@@ -28,26 +28,6 @@ public class COHRecovery {
         this.nonAcknowledgedOperations = new HashMap<>();
         this.log = log;
     }
-/*
-    public void recoverOperations(Consumer<Object> serverCallback) {
-        System.out.println("cohr:Recovering Operations");
-        Object oldMyClockOnCluster = logMyClockOnCluster.recoverLast();
-        if(oldMyClockOnCluster != null)
-            this.myClockOnCluster = (List<Integer>)oldMyClockOnCluster;
-        printArray(myClockOnCluster, "cohr:recoverOperation -> cohr clock recovered: ");
-        int min = Collections.min(myClockOnCluster);
-        System.out.println("cohr:recoverOperation -> Minimum obtained: "+min);
-        logInOrderOperations.recover((obj) -> {
-            VectorMessage vm = (VectorMessage) obj;
-            int clock = vm.getIndex(id);
-            if (vm.getId() == id && clock > min) {
-                System.out.println("cohr:recoverOperation -> Vector message not acknowledged: " + vm.toString());
-                unacknowledgedOperations.put(clock, vm);
-            }
-            serverCallback.accept(vm.getContent());
-        });
-    }
-*/
 
     public void saveUnackedOperation(int clock, VectorMessage vm){
         nonAcknowledgedOperations.put(clock, vm);

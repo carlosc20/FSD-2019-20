@@ -3,9 +3,9 @@ import Logic.Post;
 import Logic.Publisher;
 import Logic.User;
 
-import Middleware.TwoPhaseCommit.TransactionalStructures.DistributedTransactionalMap;
+import Middleware.Marshalling.MessageAuth;
+import Middleware.TwoPhaseCommit.DistributedObjects.TransactionalMap;
 import Middleware.Logging.Logger;
-import Middleware.Recovery;
 import Middleware.ServerMessagingService;
 import io.atomix.utils.net.Address;
 
@@ -13,24 +13,47 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
 
 public class PublisherImpl implements Publisher {
 
-    private DistributedTransactionalMap<String, User> users;
+    private TransactionalMap<String, User> users;
 
+    private ServerMessagingService sms;
     private HashMap<String, CircularArray<Post>> posts;
 
-    private Recovery recovery;
-
-
     public PublisherImpl(List<String> topics, ServerMessagingService sms, Address manager, Logger log) {
-        this.users = new DistributedTransactionalMap<>("users", sms, manager, log);
+        this.sms = sms;
+        this.users = new TransactionalMap<>(sms, manager, log);
         this.posts = new HashMap<>();
         for(String topic: topics) {
             posts.put(topic, new CircularArray<>(10));
         }
-        this.recovery = new Recovery(sms, log);
+        sms.causalOrderRecover(recoverOperations, log);
     }
+
+    private void startListeningToNeighboursPublishes(){
+        sms.registerOrderedOperation("publish", msg -> {
+            //TODO
+        });
+    }
+
+    private void startListeningToNeighboursSubOperations(){
+        sms.registerOperation("addSub", (a,b) ->{
+            MessageAuth msg = sms.decode(b);
+            // TODO
+        });
+
+        sms.registerOperation("removeSub", (a,b) ->{
+            MessageAuth msg = sms.decode(b);
+            // TODO
+        });
+
+    }
+
+    private Consumer<Object> recoverOperations = (content) -> {
+        //TODO
+    };
 
     private User getAuthenticatedUser(String username, String password) {
         User user = users.get(username);

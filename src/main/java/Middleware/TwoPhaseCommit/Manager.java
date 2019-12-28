@@ -2,6 +2,7 @@ package Middleware.TwoPhaseCommit;
 
 import Middleware.GlobalSerializer;
 import Middleware.Logging.Logger;
+import Middleware.Marshalling.MessageAuth;
 import Middleware.ServerMessagingService;
 import io.atomix.utils.net.Address;
 import io.atomix.utils.serializer.Serializer;
@@ -22,9 +23,9 @@ public class Manager {
     public Manager(int id, Address address, List<Address> participants) {
         this.numTransactions= 0;
         this.transactions = new HashMap<>();
-        this.s = new GlobalSerializer().getS();
+        this.s = new GlobalSerializer().build();
         this.log = new Logger("logs", "Manager", s);
-        this.sms = new ServerMessagingService(id, address, participants, log);
+        this.sms = new ServerMessagingService(id, address, participants, log, s);
         this.staticParticipants = participants;
         start();
     }
@@ -40,9 +41,11 @@ public class Manager {
 
         sms.registerOperation("firstphase", (a,b) -> {
             TransactionMessage tm = sms.decode(b);
-            TransactionState ts = transactions.get(tm.getTransactionId());
+            int tid = tm.getTransactionId();
+            TransactionState ts = transactions.get(tid);
             //1º if -> caso de uma confirmação repedida
-            if(ts.getFirstPhaseNotFinishedCounter() != 0){
+            //TODO manager iniciar depois dos participantes
+            if(transactions.containsKey(tid) && ts.getFirstPhaseNotFinishedCounter() != 0){
                 System.out.println("manager:firstphasereg -> received a reponse " + tm.toString());
                 if(tm.isAborted()) ts.setAborted();
                 if(ts.insertAndAllAnsweredFirstPhase(a)){
@@ -74,7 +77,7 @@ public class Manager {
             }
         });
 
-        sms.registerOperation("recovery", (a,b) -> {
+        sms.registerOperation("transactionalRecovery", (a,b) -> {
             int requested = sms.decode(b);
             int maxSize = transactions.size();
             for(int i = requested; i<maxSize; i++){

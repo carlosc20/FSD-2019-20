@@ -1,4 +1,4 @@
-package Middleware.TwoPhaseCommit.TransactionalStructures;
+package Middleware.TwoPhaseCommit.DistributedObjects;
 
 public class MapMessage<K,V> {
     K key;

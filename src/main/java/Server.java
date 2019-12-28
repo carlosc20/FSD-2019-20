@@ -8,7 +8,6 @@ import Middleware.ServerMessagingService;
 import io.atomix.utils.net.Address;
 import io.atomix.utils.serializer.Serializer;
 
-
 import java.util.*;
 
 public class Server {
@@ -16,13 +15,13 @@ public class Server {
     private int id; //para debug
     private ServerMessagingService sms;
     private Publisher publisher;
-    private Serializer s = new GlobalSerializer().getS();
+    private Serializer s;
 
     public Server(int id, Address address, List<Address> servers, Address manager){
          this.id = id;
-         Serializer s = new GlobalSerializer().getS();
+         Serializer s = new GlobalSerializer().build();
          Logger log = new Logger("logs", "Server" + id, s);
-         this.sms = new ServerMessagingService(id, address, servers, log);
+         this.sms = new ServerMessagingService(id, address, servers, log, s);
          List<String> topics = new ArrayList<>();
          this.publisher = new PublisherImpl(topics, sms, manager, log);
     }
@@ -81,9 +80,6 @@ public class Server {
                 return null;
             });
         });
-        sms.registerOrderedOperation("publish", msg -> {
-            //TODO
-        });
     }
 
     /*
@@ -113,11 +109,6 @@ public class Server {
                 return null; // ????
             });
         });
-        sms.registerOperation("addSub", (a,b) ->{
-            MessageAuth msg = sms.decode(b);
-            // TODO
-        });
-
         sms.registerCompletableOperation("clientRemoveSub", (a,b)->{
             MessageSub msg = sms.decode(b);
             return publisher.removeSubscription(msg.getUsername(), msg.getPassword(), msg.getName()).thenApply(success -> {
@@ -125,10 +116,6 @@ public class Server {
                 sms.sendAsyncToCluster("removeSub", b);
                 return null; // ????
             });
-        });
-        sms.registerOperation("removeSub", (a,b) ->{
-            MessageAuth msg = sms.decode(b);
-            // TODO
         });
     }
 
@@ -145,7 +132,18 @@ public class Server {
         users.localPut(name, u);
     }
 */
-
+private void startListeningToLogins2(){
+    sms.registerCompletableOperation("clientLogin", (a,b)->{
+        MessageAuth msg = sms.decode(b);
+        return publisher.login(msg.getUsername(), msg.getPassword()).thenApply(success -> {
+            if(success) {
+                return sms.encode(true);
+            }
+            else
+                return sms.encode(false);
+        });
+    });
+}
     public void startListeningToText(){
         sms.registerOperation("spreadText", (a,b)->{
             System.out.println(id + ": received spread request ratatataTa");
@@ -169,13 +167,11 @@ public class Server {
         int id = Integer.parseInt(new Scanner(System.in).nextLine());
         Thread.sleep(5000);
         Server s = new Server(id, addresses.get(id), addresses, manager);
-        s.publisher.register("marco", "123");
-        //s.startListeningToText();
-        //if(id == 0 || id == 1) {
-            //s.putUser("marco", u);
+        s.startListeningToText();
+        if(id == 0 ) {
+            s.publisher.register("marco", "123");
+        }
             //s.send("Olá", addresses.get(0));
         //}
-        //else
-          //  s.localPutUser("marco", u);
     }
 }

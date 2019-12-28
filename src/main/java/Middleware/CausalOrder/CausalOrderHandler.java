@@ -2,16 +2,10 @@ package Middleware.CausalOrder;
 
 import Middleware.Logging.Logger;
 import Middleware.Marshalling.MessageRecovery;
-import io.atomix.cluster.messaging.ManagedMessagingService;
-import io.atomix.utils.net.Address;
 import io.atomix.utils.serializer.Serializer;
 
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
 import java.util.function.Consumer;
-
-//TODO tirar endereços nas vector messages.
 
 public class CausalOrderHandler {
 
@@ -19,7 +13,7 @@ public class CausalOrderHandler {
     private List<Integer> vector;
     private Queue<VectorMessage> msgQueue;
     private Serializer s;
-    private COHRecovery cohr;
+    private NeighboursRecoveryAssistant nra;
 
 
     public CausalOrderHandler(int id, int clusterSize, Serializer s, Logger log){
@@ -30,28 +24,11 @@ public class CausalOrderHandler {
         }
         this.msgQueue = new LinkedList<>();
         this.s = s;
-        this.cohr = new COHRecovery(id, s, vector, log);
+        this.nra = new NeighboursRecoveryAssistant(id, s, vector, log);
     }
-/*
-    public List<Integer> recover(Consumer<Object> serverCallback){
-        Object oldVector = cohr.recoverVector();
-        if(oldVector != null){
-            System.out.println("coh:recover -> vector in loggs is not null");
-            this.vector = (List<Integer>)oldVector;
-        }
-        printArray(vector, "coh:recover -> vector: ");
-        cohr.recoverMessageQueue((obj)->{
-            VectorMessage vm = (VectorMessage) obj;
-            if(!inOrder(vm)){
-                this.msgQueue.add(vm);
-            }
-        });
-        cohr.recoverOperations(serverCallback);
-        return vector;
-    }
-*/
+
     public boolean treatRecoveryRequest(MessageRecovery mr, Consumer<VectorMessage> callback){
-        return cohr.getMissingOperations(mr, callback);
+        return nra.getMissingOperations(mr, callback);
     }
 
     public void read(byte[] b, Consumer<Object> callback){
@@ -66,17 +43,16 @@ public class CausalOrderHandler {
         VectorMessage msg = s.decode(b);
         System.out.println("coh:read"+type+ "-> Received a msg "+ msg.toString());
         System.out.println("coh:read"+type+ "-> from server " + msg.getId() + " and I have " + vector.get(msg.getId())+ " as is clock");
-        //TODO assim ou dois métodos separados?
         if(type == 0)
-            cohr.logOrderedOperation(msg);
+            nra.logOrderedOperation(msg);
         else{
             if(msg.getId() == id)
-                cohr.saveUnackedOperation(vector.get(id), msg);
+                nra.saveUnackedOperation(vector.get(id), msg);
         }
         if(inOrder(msg)){
             System.out.println("coh:read"+type+ " -> inOrder");
             updateVector(msg);
-            cohr.updateClocks(msg);
+            nra.updateClocks(msg);
             callback.accept(msg.getContent());
             updateQueue(type, callback);
         }
@@ -92,10 +68,9 @@ public class CausalOrderHandler {
             VectorMessage msg = iter.next();
             if(inOrder(msg)){
                 updateVector(msg);
-                cohr.updateClocks(msg);
+                nra.updateClocks(msg);
                 if(type == 0)
-                    cohr.logOrderedOperation(msg);
-                //TODO ack messages
+                    nra.logOrderedOperation(msg);
                 callback.accept(msg.getContent());
                 iter.remove();
                 updateQueue(type, callback);
@@ -126,9 +101,9 @@ public class CausalOrderHandler {
         return true;
     }
 
-    public byte[] createMsg(Object content) {
+    public byte[] createMsg(Object content, String operation) {
         vector.set(id, vector.get(id) + 1); // incrementa vetor local
-        VectorMessage vm = new VectorMessage(id, vector, content);
+        VectorMessage vm = new VectorMessage(id, vector, content, operation);
         System.out.println(vm.toString());
         //TODO cuidado
         //TODO add to unacknoledged
@@ -138,8 +113,8 @@ public class CausalOrderHandler {
     public void logAndSaveNonAckedOperation(byte[] toSend){
         System.out.println("coh:logAndSaveNonAckedOperation -> clock of this message: " + vector.get(id));
         VectorMessage vm = s.decode(toSend);
-        cohr.saveUnackedOperation(vector.get(id), vm);
-        cohr.logOrderedOperation(vm);
+        nra.saveUnackedOperation(vector.get(id), vm);
+        nra.logOrderedOperation(vm);
     }
 
     public List<Integer> getVector() {

@@ -2,7 +2,7 @@ package Middleware;
 
 import Logic.User;
 import Middleware.CausalOrder.VectorMessage;
-import Middleware.TwoPhaseCommit.TransactionalStructures.MapMessage;
+import Middleware.TwoPhaseCommit.DistributedObjects.MapMessage;
 import Middleware.Marshalling.MessageAuth;
 import Middleware.Marshalling.MessageRecovery;
 import Middleware.Marshalling.MessageSend;
@@ -16,12 +16,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 
-//TODO pode vir a ser custom
+//TODO usar as cenas custom
 public class GlobalSerializer {
-    Serializer s;
+    SerializerBuilder sb;
 
     public GlobalSerializer(){
-        s = new SerializerBuilder()
+        sb = new SerializerBuilder()
                 .addType(VectorMessage.class)
                 .addType(List.class)
                 .addType(ArrayList.class)
@@ -33,11 +33,14 @@ public class GlobalSerializer {
                 .addType(MessageSub.class)
                 .addType(MessageRecovery.class)
                 .addType(MapMessage.class)
-                .addType(User.class)
-                .build();
+                .addType(User.class);
     }
 
-    public Serializer getS(){
-        return s;
+    public void addType(Class<?> type){
+        sb.addType(type);
+    }
+
+    public Serializer build(){
+        return sb.build();
     }
 }

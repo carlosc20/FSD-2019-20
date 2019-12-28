@@ -1,6 +1,6 @@
 package Logic;
 
-import Middleware.TwoPhaseCommit.TransactionalStructures.Mapped;
+import Middleware.TwoPhaseCommit.DistributedObjects.Mapped;
 
 import java.util.ArrayList;
 import java.util.List;
