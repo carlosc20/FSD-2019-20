@@ -55,13 +55,6 @@ public class PublisherImpl implements Publisher {
         //TODO
     };
 
-    private User getAuthenticatedUser(String username, String password) {
-        User user = users.get(username);
-        if(user.getPassword().equals(password))
-            return user;
-
-        return null;
-    }
 
     @Override
     public CompletableFuture<Boolean> login(String username, String password) {
@@ -81,61 +74,48 @@ public class PublisherImpl implements Publisher {
     }
 
     @Override
-    public CompletableFuture<List<Post>> getLast10(String username, String password) {
-        User user = getAuthenticatedUser(username, password);
-        if(user != null) {
-            final int n = 10;
-            List<String> subs = user.getSubscriptions();
-            ArrayList<Post> a = new ArrayList<>(subs.size() * n);
-            for(String sub: subs) {
-                a.addAll(posts.get(sub).getAll());
-            }
-            // TODO sort com comparator por id
-            return CompletableFuture.completedFuture(a.subList(a.size() - n, a.size()));
+    public CompletableFuture<List<Post>> getLast10(String username) {
+        final int n = 10;
+        User user = users.get(username);
+        List<String> subs = user.getSubscriptions();
+        ArrayList<Post> a = new ArrayList<>(subs.size() * n);
+        for(String sub: subs) {
+            a.addAll(posts.get(sub).getAll());
+        }
+        // TODO sort com comparator por id
+        return CompletableFuture.completedFuture(a.subList(a.size() - n, a.size()));
+
+    }
+
+    @Override
+    public CompletableFuture<List<String>> getSubscriptions(String username) {
+        User user = users.get(username);
+        return CompletableFuture.completedFuture(user.getSubscriptions());
+    }
+
+    @Override
+    public CompletableFuture<Void> publish(String username, String text, List<String> topics) {
+        // TODO calcular id
+        Post post = new Post(0, username, text, topics);
+        for(String topic: topics) {
+            CircularArray<Post> l = posts.get(topic);
+            if(l != null)
+                l.add(post);
         }
         return CompletableFuture.completedFuture(null);
     }
 
     @Override
-    public CompletableFuture<List<String>> getSubscriptions(String username, String password) {
-        User user = getAuthenticatedUser(username, password);
-        if(user != null) {
-            return CompletableFuture.completedFuture(user.getSubscriptions());
-        }
-        return CompletableFuture.completedFuture(null);
-
-    }
-
-    @Override
-    public CompletableFuture<Void> publish(String username, String password, String text, List<String> topics) {
-        User user = getAuthenticatedUser(username, password);
-        if(user != null) {
-            // TODO calcular id
-            Post post = new Post(0, username, text, topics);
-            for(String topic: topics) {
-                CircularArray<Post> l = posts.get(topic);
-                if(l != null)
-                    l.add(post);
-            }
-        }
+    public CompletableFuture<Void> addSubscription(String username, String name) {
+        User user = users.get(username);
+        user.addSubscription(name);
         return CompletableFuture.completedFuture(null);
     }
 
     @Override
-    public CompletableFuture<Void> addSubscription(String username, String password, String name) {
-        User user = getAuthenticatedUser(username, password);
-        if(user != null) {
-            user.addSubscription(name);
-        }
-        return CompletableFuture.completedFuture(null);
-    }
-
-    @Override
-    public CompletableFuture<Void> removeSubscription(String username, String password, String name) {
-        User user = getAuthenticatedUser(username, password);
-        if(user != null) {
-            user.removeSubscription(name);
-        }
+    public CompletableFuture<Void> removeSubscription(String username, String name) {
+        User user = users.get(username);
+        user.removeSubscription(name);
         return CompletableFuture.completedFuture(null);
     }
 

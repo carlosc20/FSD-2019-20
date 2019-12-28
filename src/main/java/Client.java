@@ -75,14 +75,14 @@ public class Client {
                     System.out.println("removeSub <sub>");
                     System.out.println("publish <text> <tag1> <tag2>...");
                 case "getSubs":
-                    publisher.getSubscriptions(username, password).thenAccept(subscriptions -> {
+                    publisher.getSubscriptions(username).thenAccept(subscriptions -> {
                         System.out.println("Subscrições:");
                         for (String s : subscriptions) {
                             System.out.println(s);
                         }
                     });
                 case "get10":
-                    publisher.getLast10(username, password).thenAccept(messages -> {
+                    publisher.getLast10(username).thenAccept(messages -> {
                         System.out.println("Subscrições:");
                         for (Post m : messages) {
                             System.out.println(m);
@@ -93,13 +93,13 @@ public class Client {
                         System.out.println("Argumentos insuficientes");
                         break;
                     }
-                    publisher.addSubscription(username, password, cmds[1]);
+                    publisher.addSubscription(username, cmds[1]);
                 case "removeSub":
                     if (cmds.length < 2) {
                         System.out.println("Argumentos insuficientes");
                         break;
                     }
-                    publisher.removeSubscription(username, password, cmds[1]);
+                    publisher.removeSubscription(username, cmds[1]);
                 case "publish":
                     if (cmds.length < 3) {
                         System.out.println("Argumentos insuficientes");
@@ -109,7 +109,7 @@ public class Client {
                     for (int i = 2; i < cmds.length; i++) {
                         topics.add(cmds[i]);
                     }
-                    publisher.publish(username, password, cmds[1], topics);
+                    publisher.publish(username, cmds[1], topics);
                 default:
                     System.out.println("Comando não reconhecido");
             }
