@@ -41,23 +41,14 @@ public class Manager {
     public void start() {
         sms.registerOperation("startTransaction", (a, b) -> {
             TransactionMessage tm = sms.decode(b);
+            //atribui id à transação e coloca-a na estrutura
             beginTransaction(tm);
             System.out.println(tm.toString());
             log.write(tm);
-            sms.sendAndReceiveLoopToCluster("firstphase", tm, Duration.ofSeconds(10), firstPhase);
+            //fase é para participantes e não para o manager
+            tm.setPhase(1);
+            sms.sendAndReceiveLoopToCluster("firstphase", tm, 10, firstPhase);
             return sms.encode(0);
-        });
-
-        sms.registerOperation("transactionalRecovery", (a,b) -> {
-            int requested = sms.decode(b);
-            System.out.println(requested+  " and maxSize = " + numTransactions);
-            if(requested >= numTransactions) return sms.encode(false);
-            for(int i = requested; i<numTransactions; i++){
-                TransactionMessage tm = new TransactionMessage(i, transactions.get(i).getContent());
-                //acho que enviar para um resolve
-                sms.sendAsync(a,"firstphase", tm);
-            }
-            return sms.encode(true);
         });
     }
 
@@ -78,7 +69,9 @@ public class Manager {
                 System.out.println("manager:firstphasereg -> commiting tid == " + tm.getTransactionId());
             }
             log.write(tm);
-            sms.sendAndReceiveLoopToCluster("secondphase", tm, Duration.ofSeconds(6), (b2) -> secondPhase(b2));
+            //fase é para participantes e não para o manager
+            tm.setPhase(2);
+            sms.sendAndReceiveLoopToCluster("secondphase", tm, 6, (b2) -> secondPhase(b2));
         }
     };
 

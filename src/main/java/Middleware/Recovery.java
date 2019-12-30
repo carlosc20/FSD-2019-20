@@ -26,7 +26,5 @@ public class Recovery {
         System.out.println("recovery:start -> Handlers registered");
         sms.sendAndReceiveForRecovery(d);
         System.out.println("recovery:start -> causalOrderRecovery message sent");
-        tmap.sendRecoveryRequest(d,(obj -> System.out.println("transactionalRecovery response-> " + (boolean)obj)));
-        System.out.println("recovery:start -> transactionalRecovery message sent");
     }
 }
