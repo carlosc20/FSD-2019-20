@@ -5,7 +5,7 @@ import io.atomix.utils.net.Address;
 import java.util.*;
 
 public class TransactionState {
-    private Set<Address> states;
+    private Set<Integer> states;
     private Object content;
     private int firstPhaseNotFinishedCounter;
     private int secondPhaseNotFinishedCounter;
@@ -15,16 +15,19 @@ public class TransactionState {
         this.state = 'p';
         this.content = content;
         this.states = new HashSet<>();
+        /*
         for(Address a : participants)
-            states.add(a);
+            states.add();
+            */
         firstPhaseNotFinishedCounter = participants.size();
         secondPhaseNotFinishedCounter = participants.size();
     }
 
-    public boolean insertAndAllAnsweredFirstPhase(Address a){
-        if(!states.contains(a)){
-            states.add(a);
+    public boolean insertAndAllAnsweredFirstPhase(Integer id){
+        if(!states.contains(id)){
+            states.add(id);
             firstPhaseNotFinishedCounter--;
+            System.out.println("ts:firstPhase answers arrived " + firstPhaseNotFinishedCounter + " still missing");
         }
         if(firstPhaseNotFinishedCounter == 0){
             states.clear();
@@ -33,10 +36,11 @@ public class TransactionState {
         return false;
     }
 
-    public boolean insertAndAllAnsweredSecondPhase(Address a){
-        if(!states.contains(a)){
-            states.add(a);
+    public boolean insertAndAllAnsweredSecondPhase(Integer id){
+        if(!states.contains(id)){
+            states.add(id);
             secondPhaseNotFinishedCounter--;
+            System.out.println("ts:secondPhase answers arrived " + secondPhaseNotFinishedCounter + " still missing");
         }
         return secondPhaseNotFinishedCounter == 0;
     }

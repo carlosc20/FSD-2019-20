@@ -4,9 +4,11 @@ import Logic.Publisher;
 import Logic.User;
 
 import Middleware.Marshalling.MessageAuth;
+import Middleware.Recovery;
 import Middleware.TwoPhaseCommit.DistributedObjects.TransactionalMap;
 import Middleware.Logging.Logger;
 import Middleware.ServerMessagingService;
+import Middleware.TwoPhaseCommit.Participant;
 import io.atomix.utils.net.Address;
 
 import java.util.ArrayList;
@@ -26,13 +28,16 @@ public class PublisherImpl implements Publisher {
     private static final int n = 10; // nr de posts devolvidos no getLast
 
 
-    public PublisherImpl(List<String> topics, ServerMessagingService sms, Address manager, Logger log) {
+    public PublisherImpl(List<String> topics, Participant p, ServerMessagingService sms, Logger log) {
         this.lastPostId = 0;
-        this.users = new TransactionalMap<>(sms, manager, log);
+        this.users = new TransactionalMap<>(p);
         this.posts = new HashMap<>();
         for(String topic: topics) {
             posts.put(topic, new CircularArray<>(n));
         }
+        sms.start();
+        new Recovery(log).start((obj) -> {}, sms, users);
+        users.start();
     }
 
     @Override

@@ -1,8 +1,6 @@
 package Middleware.TwoPhaseCommit;
 
-import Middleware.TwoPhaseCommit.DistributedObjects.Mapped;
-
-public class TransactionalObject<V extends Mapped> implements Mapped{
+public class TransactionalObject<V>{
     private V object;
     private boolean state; //true == commited, false == nonCommited
 
@@ -20,10 +18,6 @@ public class TransactionalObject<V extends Mapped> implements Mapped{
 
     public V getObject() {
         return object;
-    }
-
-    public Object getKey(){
-        return object.getKey();
     }
 
     @Override

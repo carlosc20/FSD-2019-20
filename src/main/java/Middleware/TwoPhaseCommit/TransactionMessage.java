@@ -1,17 +1,20 @@
 package Middleware.TwoPhaseCommit;
 
 public class TransactionMessage<V>  {
+    private int senderId;
     private int transactionId;
     private char type;
     private V content;
 
-    public TransactionMessage(V content){
+    public TransactionMessage(int senderId, V content){
+        this.senderId = senderId;
         this.transactionId = -1;
         this.type = 'b';
         this.content = content;
     }
 
-    public TransactionMessage(int transactionId, V content){
+    public TransactionMessage(int senderId, int transactionId, V content){
+        this.senderId = senderId;
         this.transactionId = transactionId;
         this.type = 'b';
         this.content = content;
@@ -37,7 +40,9 @@ public class TransactionMessage<V>  {
         this.type = 'p';
     }
 
-    public boolean notVoted(){
+    public void setFinished(){this.type = 'f';}
+
+    public boolean notStarted(){
         return type == 'b';
     }
 
@@ -53,8 +58,18 @@ public class TransactionMessage<V>  {
         return type == 'c';
     }
 
+    public boolean isFinished() {return type == 'f';}
+
     public V getContent() {
         return content;
+    }
+
+    public int getSenderId() {
+        return senderId;
+    }
+
+    public void setSenderId(int senderId) {
+        this.senderId = senderId;
     }
 
     public void setContent(V content) {
@@ -64,8 +79,9 @@ public class TransactionMessage<V>  {
     @Override
     public String toString() {
         return "TransactionMessage{" +
-                " tId= " + this.transactionId +
-                " type= " + this.type +
+                "senderId=" + senderId +
+                ", transactionId=" + transactionId +
+                ", type=" + type +
                 '}';
     }
 }

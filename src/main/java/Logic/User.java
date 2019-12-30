@@ -1,11 +1,9 @@
 package Logic;
 
-import Middleware.TwoPhaseCommit.DistributedObjects.Mapped;
-
 import java.util.ArrayList;
 import java.util.List;
 
-public class User implements Mapped<String> {
+public class User {
 
     private String name;
     private String password;
@@ -35,10 +33,6 @@ public class User implements Mapped<String> {
 
     public void removeSubscription(String name) {
         subscriptions.remove(name);
-    }
-
-    public String getKey(){
-        return name;
     }
 
     @Override

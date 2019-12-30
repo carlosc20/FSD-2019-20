@@ -1,7 +1,6 @@
 package Middleware;
 
 import Middleware.CausalOrder.CausalOrderHandler;
-import Middleware.CausalOrder.VectorMessage;
 import Middleware.Logging.Logger;
 
 import Middleware.Marshalling.MessageRecovery;
@@ -31,12 +30,12 @@ public class ServerMessagingService {
 
     public ServerMessagingService(int id, Address address, List<Address> participants, Logger log, Serializer s){
         this.id = id;
+        //TODO passar executor para fora?
         this.e = Executors.newFixedThreadPool(1);
         this.mms = new NettyMessagingService(
                 "server",
                 address,
                 new MessagingConfig());
-        mms.start();
         this.participants = new ArrayList<>();
         this.s = s;
         int pSize = participants.size();
@@ -46,6 +45,16 @@ public class ServerMessagingService {
             this.participants.add(participants.get(i));
         }
         this.coh = new CausalOrderHandler(id, pSize, s, log);
+    }
+
+    public void start(){
+        mms.start();
+        registerOperation("causalOrderRecovery", (a,b)->{
+            System.out.println("recovery:handler -> Received request from: " + a);
+            boolean state = coh.treatRecoveryRequest(decode(b),
+                    msg2 -> sendAsync(a, msg2.getOperation(), msg2));
+            return encode(state);
+        });
     }
 
     public <T> void registerOperation(String type, Consumer<T> callback){
@@ -89,7 +98,7 @@ public class ServerMessagingService {
 
     //TODO pq não void?
     public CompletableFuture<Void> sendAsyncToCluster(String type, Object content) {
-        System.out.println("sms:sendAsyncToCluster ->");
+        System.out.println("sms:sendAsyncToCluster -> type == " + type);
         for (Address a : participants){
             mms.sendAsync(a, type, s.encode(content));
         }
@@ -100,6 +109,28 @@ public class ServerMessagingService {
         return mms.sendAndReceive(a, type, s.encode(content),e)
                     .thenApply(b -> s.decode(b));
     }
+
+    public void sendAndReceiveLoopToCluster(String type, Object content, Duration d, Consumer<Object> callback){
+        System.out.println("sms:sendAndReceiveLoopToCluster -> type == " + type);
+        for (Address a : participants){
+            sendAndReceiveLoop(a,type,content,d,callback);
+        }
+    }
+
+    public void sendAndReceiveLoop(Address a, String type, Object content, Duration d, Consumer<Object> callback){
+        mms.sendAndReceive(a, type, s.encode(content), d, e)
+                .whenComplete((message, throwable) ->{
+                    if(throwable!=null){
+                        //throwable.printStackTrace();
+                        System.out.println("timeout resending msg with type +" + type + " to " + a);
+                        sendAndReceiveLoop(a,type,content,d, callback);
+                    }
+                    else {
+                        callback.accept(decode(message));
+                    }
+                });
+    }
+
 
     public <T> CompletableFuture<Void> sendAsync(Address a, String type, T content){
         return mms.sendAsync(a,type,s.encode(content));
@@ -117,38 +148,23 @@ public class ServerMessagingService {
         return CompletableFuture.completedFuture(null);
     }
 
-    public CompletableFuture<Void> sendAndReceiveForRecovery(String type, List<Integer> vector, Duration timout){
+    public CompletableFuture<Void> sendAndReceiveForRecovery(Duration timout){
         //List<CompletableFuture<Void>> cfs = new ArrayList<>();
+        List<Integer> vector = coh.getVector();
         //TODO resolver
         System.out.println("sms:sendAndReceiveForRecovery ->");
         int i = 0;
         for(Address a : participants){
             MessageRecovery mr = new MessageRecovery(id, vector.get(i));
-            mms.sendAndReceive(a, type, s.encode(mr), timout, e)
+            mms.sendAndReceive(a, "causalOrderRecovery", s.encode(mr), timout, e)
                     .thenAccept(b -> System.out.println("sms:sendAndReceiveForRecovery -> " + (boolean)s.decode(b) + " by " + a));
             i++;
         }
         return CompletableFuture.completedFuture(null);
     }
 
-    public void causalOrderRecover(Consumer<Object> callback, Logger log){
-        System.out.println("recovery:start -> Starting recovery");
-        log.recover( (msg)->{
-            if(msg instanceof VectorMessage)
-                coh.recoveryRead(encode(msg), callback);
-        });
-
-        registerOperation("causalOrderRecovery", (a,b)->{
-            System.out.println("recovery:handler -> Received request from: " + a);
-            boolean state = coh.treatRecoveryRequest(decode(b),
-                    msg -> sendAsync(a, msg.getOperation(),msg));
-            return encode(state);
-        });
-
-        Duration d = Duration.ofSeconds(15);
-        System.out.println("recovery:start -> Handlers registered");
-        sendAndReceiveForRecovery("causalOrderRecovery", coh.getVector(), d);
-        System.out.println("recovery:start -> recovery messages sent");
+    public void causalOrderRecover(Object msg, Consumer<Object> callback){
+        coh.recoveryRead(encode(msg), callback);
     }
 
     public <T> byte[] encode(T object){

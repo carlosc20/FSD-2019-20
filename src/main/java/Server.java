@@ -5,6 +5,7 @@ import Middleware.Marshalling.MessageAuth;
 import Middleware.Marshalling.MessageSend;
 import Middleware.Marshalling.MessageSub;
 import Middleware.ServerMessagingService;
+import Middleware.TwoPhaseCommit.Participant;
 import io.atomix.utils.net.Address;
 import io.atomix.utils.serializer.Serializer;
 
@@ -23,7 +24,8 @@ public class Server {
          Logger log = new Logger("logs", "Server" + id, s);
          this.sms = new ServerMessagingService(id, address, servers, log, s);
          List<String> topics = new ArrayList<>();
-         this.publisher = new PublisherImpl(topics, sms, manager, log);
+         Participant p = new Participant(id, manager, sms, log);
+         this.publisher = new PublisherImpl(topics, p, sms, log);
     }
 
     public void start(){
@@ -50,11 +52,6 @@ public class Server {
                 else
                     return s.encode(false);
             });
-        });
-        // cluster
-        sms.registerOperation("register", (a,b) ->{
-            MessageAuth msg = sms.decode(b);
-            publisher.register(msg.getUsername(), msg.getPassword());
         });
     }
 
@@ -214,7 +211,7 @@ public class Server {
         Server s = new Server(id, addresses.get(id), addresses, manager);
         s.startListeningToText();
         if(id == 0 ) {
-            s.publisher.register("marco", "123");
+            s.publisher.register("mario", "123");
         }
             //s.send("Olá", addresses.get(0));
         //}
