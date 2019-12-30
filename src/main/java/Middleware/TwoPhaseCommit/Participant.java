@@ -40,7 +40,8 @@ public class Participant {
     public <T> CompletableFuture<byte[]> sendTransaction(T toSend){
         TransactionMessage<T> tm = new TransactionMessage<>(id, toSend);
         System.out.println("dtm:sendTransaction -> starting transaction");
-        sms.sendAndReceiveLoop(manager, "startTransaction", tm, Duration.ofSeconds(6), x ->System.out.println("received"));
+        //sms.sendAndReceiveLoop(manager, "startTransaction", tm, Duration.ofSeconds(6), x ->System.out.println("received"));
+        sms.sendAndReceive(manager, "startTransaction", tm);
         //TODO corrigir se der
         return CompletableFuture.completedFuture(null);
     }

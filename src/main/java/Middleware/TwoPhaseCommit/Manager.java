@@ -4,6 +4,7 @@ import Middleware.GlobalSerializer;
 import Middleware.Logging.Logger;
 import Middleware.Marshalling.MessageAuth;
 import Middleware.ServerMessagingService;
+import Middleware.TwoPhaseCommit.DistributedObjects.MapMessage;
 import io.atomix.utils.net.Address;
 import io.atomix.utils.serializer.Serializer;
 
@@ -41,16 +42,17 @@ public class Manager {
         sms.registerOperation("startTransaction", (a, b) -> {
             TransactionMessage tm = sms.decode(b);
             beginTransaction(tm);
+            System.out.println(tm.toString());
+            log.write(tm);
             sms.sendAndReceiveLoopToCluster("firstphase", tm, Duration.ofSeconds(10), firstPhase);
             return sms.encode(0);
         });
 
         sms.registerOperation("transactionalRecovery", (a,b) -> {
             int requested = sms.decode(b);
-            int maxSize = transactions.size();
-            System.out.println(requested+  " and maxSize = " + maxSize);
-            if(requested >= maxSize) return sms.encode(false);
-            for(int i = requested; i<maxSize; i++){
+            System.out.println(requested+  " and maxSize = " + numTransactions);
+            if(requested >= numTransactions) return sms.encode(false);
+            for(int i = requested; i<numTransactions; i++){
                 TransactionMessage tm = new TransactionMessage(i, transactions.get(i).getContent());
                 //acho que enviar para um resolve
                 sms.sendAsync(a,"firstphase", tm);
@@ -103,7 +105,6 @@ public class Manager {
         transactions.put(numTransactions, new TransactionState(staticParticipants, tm.getContent()));
         tm.setTransactionId(numTransactions);
         tm.setPrepared();
-        log.write(tm);
     }
 
     private void recover(){
@@ -113,6 +114,7 @@ public class Manager {
             auxiliar.put(tm.getTransactionId(), tm);
         });
         for(TransactionMessage tm : auxiliar.values()){
+            numTransactions++;
             if(tm.isPrepared()){
                 transactions.put(tm.getTransactionId(), new TransactionState(staticParticipants, tm.getContent()));
                 sms.sendAsyncToCluster("firstphase", tm);

@@ -13,13 +13,6 @@ public class TransactionMessage<V>  {
         this.content = content;
     }
 
-    public TransactionMessage(int senderId, int transactionId, V content){
-        this.senderId = senderId;
-        this.transactionId = transactionId;
-        this.type = 'b';
-        this.content = content;
-    }
-
     public int getTransactionId() {
         return transactionId;
     }
@@ -81,6 +74,7 @@ public class TransactionMessage<V>  {
         return "TransactionMessage{" +
                 "senderId=" + senderId +
                 ", transactionId=" + transactionId +
+                ", content= " + content.toString() +
                 ", type=" + type +
                 '}';
     }

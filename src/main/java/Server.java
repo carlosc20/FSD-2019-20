@@ -211,7 +211,7 @@ public class Server {
         Server s = new Server(id, addresses.get(id), addresses, manager);
         s.startListeningToText();
         if(id == 0 ) {
-            s.publisher.register("mario", "123");
+            s.publisher.register("mara", "123");
         }
             //s.send("Olá", addresses.get(0));
         //}

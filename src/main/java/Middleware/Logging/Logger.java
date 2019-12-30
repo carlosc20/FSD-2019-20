@@ -29,7 +29,7 @@ public class Logger {
         CompletableFuture.supplyAsync(() -> {
             w.flush();
             return null;
-        }).thenRun(() -> w.close());
+        });
     }
 
     public void recover(Consumer<Object> callback) {
