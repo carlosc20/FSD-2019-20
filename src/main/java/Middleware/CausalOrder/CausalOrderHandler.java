@@ -12,6 +12,7 @@ public class CausalOrderHandler {
     private int id;
     private List<Integer> vector;
     private Queue<VectorMessage> msgQueue;
+
     private Serializer s;
     private NeighboursRecoveryAssistant nra;
 
@@ -31,6 +32,28 @@ public class CausalOrderHandler {
         return nra.getMissingOperations(mr, callback);
     }
 
+    public void logAndSaveNonAckedOperation(byte[] toSend){
+        System.out.println("coh:logAndSaveNonAckedOperation -> clock of this message: " + vector.get(id));
+        VectorMessage vm = s.decode(toSend);
+        nra.saveUnackedOperation(vector.get(id), vm);
+        nra.logOrderedOperation(vm);
+    }
+
+    public List<Integer> getVector() {
+        return vector;
+    }
+
+    public byte[] createMsg(Object content, String operation) {
+        vector.set(id, vector.get(id) + 1); // incrementa vetor local
+        VectorMessage vm = new VectorMessage(id, vector, content, operation);
+
+        System.out.println(vm.toString());
+        //TODO cuidado
+        //TODO add to
+
+        return s.encode(vm);
+    }
+
     public void read(byte[] b, Consumer<Object> callback){
         read(0, b, callback);
     }
@@ -39,16 +62,19 @@ public class CausalOrderHandler {
         read(1, b, callback);
     }
 
-    public void read(int type, byte[] b, Consumer<Object> callback){
+    // type 0 -> normal, 1 -> logs
+    private void read(int type, byte[] b, Consumer<Object> callback){
         VectorMessage msg = s.decode(b);
         System.out.println("coh:read"+type+ "-> Received a msg "+ msg.toString());
         System.out.println("coh:read"+type+ "-> from server " + msg.getId() + " and I have " + vector.get(msg.getId())+ " as is clock");
-        if(type == 0)
+
+        if(type == 0) // normal
             nra.logOrderedOperation(msg);
-        else{
-            if(msg.getId() == id)
-                nra.saveUnackedOperation(vector.get(id), msg);
+        else if(msg.getId() == id) { // logs
+            nra.saveUnackedOperation(vector.get(id), msg);
         }
+
+        // vê se está ordenada, se não vai para queue
         if(inOrder(msg)){
             System.out.println("coh:read"+type+ " -> inOrder");
             updateVector(msg);
@@ -62,15 +88,18 @@ public class CausalOrderHandler {
         }
     }
 
+    /*  verifica se alguma das mensagens na queue está ordenada, se sim executa a callback
+        atualiza estruturas e volta a verificar a queue agora com a mensagem removida
+     */
     private void updateQueue(int type, Consumer<Object> callback){
         Iterator<VectorMessage> iter = msgQueue.iterator();
         while (iter.hasNext()){
             VectorMessage msg = iter.next();
             if(inOrder(msg)){
-                updateVector(msg);
-                nra.updateClocks(msg);
                 if(type == 0)
                     nra.logOrderedOperation(msg);
+                updateVector(msg);
+                nra.updateClocks(msg);
                 callback.accept(msg.getContent());
                 iter.remove();
                 updateQueue(type, callback);
@@ -78,11 +107,13 @@ public class CausalOrderHandler {
             }
         }
     }
+
     private void updateVector(VectorMessage msg){
         int id = msg.getId();
         vector.set(id, msg.getIndex(id));
     }
 
+    // verifica se a mensagem está ordenada
     private boolean inOrder(VectorMessage msg){
         List<Integer> v = msg.getVector();
         int id = msg.getId();
@@ -101,25 +132,9 @@ public class CausalOrderHandler {
         return true;
     }
 
-    public byte[] createMsg(Object content, String operation) {
-        vector.set(id, vector.get(id) + 1); // incrementa vetor local
-        VectorMessage vm = new VectorMessage(id, vector, content, operation);
-        System.out.println(vm.toString());
-        //TODO cuidado
-        //TODO add to unacknoledged
-        return s.encode(vm);
-    }
 
-    public void logAndSaveNonAckedOperation(byte[] toSend){
-        System.out.println("coh:logAndSaveNonAckedOperation -> clock of this message: " + vector.get(id));
-        VectorMessage vm = s.decode(toSend);
-        nra.saveUnackedOperation(vector.get(id), vm);
-        nra.logOrderedOperation(vm);
-    }
 
-    public List<Integer> getVector() {
-        return vector;
-    }
+
 
     //DEBUG
     private void printArray(List<Integer> v, String header){

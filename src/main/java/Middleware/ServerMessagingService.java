@@ -63,6 +63,7 @@ public class ServerMessagingService {
 
     public void registerCompletableOperation(String type, BiFunction<Address, byte[], CompletableFuture<byte[]>> callback){
         mms.registerHandler(type, callback);
+
     }
 
     public void registerOperation(String type, BiConsumer<Address,byte[]> callback){
@@ -75,7 +76,7 @@ public class ServerMessagingService {
 
     public void registerOrderedOperation(String name, Consumer<Object> callback){
         mms.registerHandler(name, (a,b) -> {
-            coh.read(b, o-> callback.accept(o));
+            coh.read(b, callback);
         },e);
     }
 
@@ -136,10 +137,9 @@ public class ServerMessagingService {
         return mms.sendAsync(a,type,s.encode(content));
     }
 
-    public CompletableFuture<Void> sendCausalOrderAsyncToCluster(String type, byte[] content) {
+    public CompletableFuture<Void> sendCausalOrderAsyncToCluster(String type, Object content) {
         System.out.println("sms:sendCausalOrderAsyncToCluster ->");
-        Object o = s.decode(content);
-        byte[] toSend = coh.createMsg(o, type);
+        byte[] toSend = coh.createMsg(content, type);
         for (Address a : participants){
             mms.sendAsync(a, type, toSend);
         }

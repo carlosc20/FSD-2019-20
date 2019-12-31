@@ -93,13 +93,13 @@ public class Client {
                         System.out.println("Argumentos insuficientes");
                         break;
                     }
-                    publisher.addSubscription(username, cmds[1]);
+                    publisher.addSubscription(username, cmds[1]).thenAccept(s -> System.out.println(cmds[1] + " subscrito"));
                 case "removeSub":
                     if (cmds.length < 2) {
                         System.out.println("Argumentos insuficientes");
                         break;
                     }
-                    publisher.removeSubscription(username, cmds[1]);
+                    publisher.removeSubscription(username, cmds[1]).thenAccept(s -> System.out.println(cmds[1] + " removido das subscrições"));
                 case "publish":
                     if (cmds.length < 3) {
                         System.out.println("Argumentos insuficientes");
@@ -109,7 +109,7 @@ public class Client {
                     for (int i = 2; i < cmds.length; i++) {
                         topics.add(cmds[i]);
                     }
-                    publisher.publish(username, cmds[1], topics);
+                    publisher.publish(username, cmds[1], topics).thenAccept(s -> System.out.println("mensagem publicada"));
                 default:
                     System.out.println("Comando não reconhecido");
             }

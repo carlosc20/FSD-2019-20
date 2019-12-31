@@ -103,7 +103,7 @@ public class Server {
                 if(auth) {
                     return publisher.publish(msg.getUsername(), msg.getText(), msg.getTopics()).thenApply(nada -> {
                         //TODO criar msg para cluster sem passwd?
-                        sms.sendCausalOrderAsyncToCluster("publish", b);
+                        sms.sendCausalOrderAsyncToCluster("publish", msg);
                         return s.encode(null); // TODO ???
                     });
                 }
