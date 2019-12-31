@@ -110,14 +110,14 @@ public class Manager {
             numTransactions++;
             if(tm.isPrepared()){
                 transactions.put(tm.getTransactionId(), new TransactionState(staticParticipants, tm.getContent()));
-                sms.sendAsyncToCluster("firstphase", tm);
+                sms.sendAndReceiveLoopToCluster("firstphase", tm, 10, firstPhase);
             }
             else if(tm.isFinished()) continue;
             else{
                 TransactionState ts = new TransactionState(staticParticipants, tm.getContent());
                 ts.firstPhaseFinished();
                 transactions.put(tm.getTransactionId(), ts);
-                sms.sendAsyncToCluster("secondphase", tm);
+                sms.sendAndReceiveLoopToCluster("secondphase", tm, 10, firstPhase);
             }
         }
     }
