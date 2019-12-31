@@ -1,15 +1,14 @@
 import Logic.Publisher;
 import Middleware.GlobalSerializer;
 import Middleware.Logging.Logger;
-import Middleware.Marshalling.MessageAuth;
-import Middleware.Marshalling.MessageSend;
-import Middleware.Marshalling.MessageSub;
+import Middleware.Marshalling.*;
 import Middleware.ServerMessagingService;
 import Middleware.TwoPhaseCommit.Participant;
 import io.atomix.utils.net.Address;
 import io.atomix.utils.serializer.Serializer;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 
 public class Server {
 
@@ -20,7 +19,7 @@ public class Server {
 
     public Server(int id, Address address, List<Address> servers, Address manager){
          this.id = id;
-         Serializer s = new GlobalSerializer().build();
+         this.s = new GlobalSerializer().build();
          Logger log = new Logger("logs", "Server" + id, s);
          this.sms = new ServerMessagingService(id, address, servers, log, s);
          List<String> topics = new ArrayList<>();
@@ -76,16 +75,20 @@ public class Server {
             MessageAuth msg = s.decode(b);
             return publisher.login(msg.getUsername(), msg.getPassword()).thenCompose(auth -> {
                 if(auth)
-                    return publisher.getSubscriptions(msg.getUsername()).thenApply(s::encode);
-                return null; // TODO mensagem erro
+                    return publisher.getSubscriptions(msg.getUsername()).thenApply(subs ->
+                            s.encode(new MessageReply<>(subs))
+                    );
+                return CompletableFuture.completedFuture(s.encode(MessageReply.ERROR(1)));
             });
         });
         sms.registerCompletableOperation("clientGetPosts", (a,b)->{
             MessageAuth msg = s.decode(b);
             return publisher.login(msg.getUsername(), msg.getPassword()).thenCompose(auth -> {
                 if(auth)
-                    return publisher.getLast10(msg.getUsername()).thenApply(s::encode);
-                return null; // TODO mensagem erro
+                    return publisher.getLast10(msg.getUsername()).thenApply(posts ->
+                            s.encode(new MessageReply<>(posts))
+                    );
+                return CompletableFuture.completedFuture(s.encode(MessageReply.ERROR(1)));
             });
         });
     }
@@ -101,13 +104,12 @@ public class Server {
             MessageSend msg = s.decode(b);
             return publisher.login(msg.getUsername(), msg.getPassword()).thenCompose(auth -> {
                 if(auth) {
-                    return publisher.publish(msg.getUsername(), msg.getText(), msg.getTopics()).thenApply(nada -> {
-                        //TODO criar msg para cluster sem passwd?
-                        sms.sendCausalOrderAsyncToCluster("publish", msg);
-                        return s.encode(null); // TODO ???
+                    return publisher.publish(msg.getUsername(), msg.getText(), msg.getTopics()).thenApply(v -> {
+                        sms.sendCausalOrderAsyncToCluster("publish", msg); //TODO criar msg para cluster sem passwd?
+                        return s.encode(MessageReply.OK);
                     });
                 }
-                return null; // TODO mensagem erro
+                return CompletableFuture.completedFuture(s.encode(MessageReply.ERROR(1)));
             });
         });
         // cluster
@@ -126,26 +128,24 @@ public class Server {
             MessageSub msg = sms.decode(b);
             return publisher.login(msg.getUsername(), msg.getPassword()).thenCompose(auth -> {
                 if(auth) {
-                    return publisher.addSubscription(msg.getUsername(), msg.getName()).thenApply(nada -> {
-                        //TODO criar msg para cluster sem passwd?
-                        sms.sendAsyncToCluster("addSub", b);
-                        return s.encode(null); // ????
+                    return publisher.addSubscription(msg.getUsername(), msg.getName()).thenApply(v -> {
+                        sms.sendAsyncToCluster("addSub", msg); //TODO criar msg para cluster sem passwd?
+                        return s.encode(MessageReply.OK);
                     });
                 }
-                return null; // TODO mensagem erro
+                return CompletableFuture.completedFuture(s.encode(MessageReply.ERROR(1)));
             });
         });
         sms.registerCompletableOperation("clientRemoveSub", (a,b)->{
             MessageSub msg = sms.decode(b);
             return publisher.login(msg.getUsername(), msg.getPassword()).thenCompose(auth -> {
                 if(auth) {
-                    return publisher.removeSubscription(msg.getUsername(), msg.getName()).thenApply(nada -> {
-                        //TODO criar msg para cluster sem passwd?
-                        sms.sendAsyncToCluster("removeSub", b);
-                        return s.encode(null); // ????
+                    return publisher.removeSubscription(msg.getUsername(), msg.getName()).thenApply(v -> {
+                        sms.sendAsyncToCluster("removeSub", msg); //TODO criar msg para cluster sem passwd?
+                        return s.encode(MessageReply.OK);
                     });
                 }
-                return null; // TODO mensagem erro
+                return CompletableFuture.completedFuture(s.encode(MessageReply.ERROR(1)));
             });
         });
         // cluster

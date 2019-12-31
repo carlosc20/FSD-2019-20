@@ -37,7 +37,7 @@ public class Client {
                     publisher.login(cmds[1],cmds[2]).thenAccept(success ->  {
                         if(success) {
                             System.out.println("Login efetuado com sucesso");
-                            session(scanner, publisher, cmds[1], cmds[2]);
+                            session(scanner, publisher, cmds[1]);
                         }
                         else System.out.println("Login falhou");
                     });
@@ -57,7 +57,7 @@ public class Client {
         scanner.close();
     }
 
-    private static void session(Scanner scanner, Publisher publisher, String username, String password) {
+    private static void session(Scanner scanner, Publisher publisher, String username) {
 
         while (true) {
             String input = scanner.nextLine();

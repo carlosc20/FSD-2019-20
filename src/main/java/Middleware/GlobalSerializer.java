@@ -2,11 +2,8 @@ package Middleware;
 
 import Logic.User;
 import Middleware.CausalOrder.VectorMessage;
+import Middleware.Marshalling.*;
 import Middleware.TwoPhaseCommit.DistributedObjects.MapMessage;
-import Middleware.Marshalling.MessageAuth;
-import Middleware.Marshalling.MessageRecovery;
-import Middleware.Marshalling.MessageSend;
-import Middleware.Marshalling.MessageSub;
 import Middleware.TwoPhaseCommit.TransactionMessage;
 import io.atomix.utils.net.Address;
 import io.atomix.utils.serializer.Serializer;
@@ -33,6 +30,7 @@ public class GlobalSerializer {
                 .addType(MessageSub.class)
                 .addType(MessageRecovery.class)
                 .addType(MapMessage.class)
+                .addType(MessageReply.class)
                 .addType(User.class);
     }
 
