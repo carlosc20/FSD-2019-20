@@ -13,9 +13,7 @@ import io.atomix.utils.serializer.Serializer;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -23,6 +21,7 @@ import java.util.function.Consumer;
 public class ServerMessagingService {
     private int id;
     private CausalOrderHandler coh;
+    private ScheduledExecutorService ses;
     private ExecutorService e;
     private ManagedMessagingService mms;
     private Serializer s;
@@ -31,6 +30,7 @@ public class ServerMessagingService {
     public ServerMessagingService(int id, Address address, List<Address> participants, Logger log, Serializer s){
         this.id = id;
         //TODO passar executor para fora?
+        this.ses = Executors.newScheduledThreadPool(1);
         this.e = Executors.newFixedThreadPool(1);
         this.mms = new NettyMessagingService(
                 "server",
@@ -111,20 +111,21 @@ public class ServerMessagingService {
                     .thenApply(b -> s.decode(b));
     }
 
-    public void sendAndReceiveLoopToCluster(String type, Object content, Duration d, Consumer<Object> callback){
+    public void sendAndReceiveLoopToCluster(String type, Object content, int seconds, Consumer<Object> callback){
         System.out.println("sms:sendAndReceiveLoopToCluster -> type == " + type);
         for (Address a : participants){
-            sendAndReceiveLoop(a,type,content,d,callback);
+            sendAndReceiveLoop(a,type,content,seconds,callback);
         }
     }
 
-    public void sendAndReceiveLoop(Address a, String type, Object content, Duration d, Consumer<Object> callback){
-        mms.sendAndReceive(a, type, s.encode(content), d, e)
+    public void sendAndReceiveLoop(Address a, String type, Object content, int seconds, Consumer<Object> callback){
+        mms.sendAndReceive(a, type, s.encode(content), e)
                 .whenComplete((message, throwable) ->{
                     if(throwable!=null){
                         //throwable.printStackTrace();
                         System.out.println("timeout resending msg with type +" + type + " to " + a);
-                        sendAndReceiveLoop(a,type,content,d, callback);
+                        Runnable task = () -> sendAndReceiveLoop(a, type,content,seconds, callback);
+                        ses.schedule(task, seconds, TimeUnit.SECONDS);
                     }
                     else {
                         callback.accept(decode(message));

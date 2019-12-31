@@ -4,12 +4,14 @@ public class TransactionMessage<V>  {
     private int senderId;
     private int transactionId;
     private char type;
+    private int phase;
     private V content;
 
     public TransactionMessage(int senderId, V content){
         this.senderId = senderId;
         this.transactionId = -1;
         this.type = 'b';
+        this.phase = 0;
         this.content = content;
     }
 
@@ -69,6 +71,17 @@ public class TransactionMessage<V>  {
         this.content = content;
     }
 
+    public boolean isSecondPhase(){return phase == 2;}
+
+    public boolean isFirstPhase(){return phase == 1;}
+
+
+    public void setPhase(int phase) {
+        this.phase = phase;
+    }
+
+
+
     @Override
     public String toString() {
         return "TransactionMessage{" +
@@ -76,6 +89,7 @@ public class TransactionMessage<V>  {
                 ", transactionId=" + transactionId +
                 ", content= " + content.toString() +
                 ", type=" + type +
+                ", phase=" + phase +
                 '}';
     }
 }

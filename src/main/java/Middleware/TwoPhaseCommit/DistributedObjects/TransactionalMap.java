@@ -1,15 +1,12 @@
 package Middleware.TwoPhaseCommit.DistributedObjects;
 
-import Middleware.Logging.Logger;
-import Middleware.ServerMessagingService;
 import Middleware.TwoPhaseCommit.Participant;
 import Middleware.TwoPhaseCommit.TransactionMessage;
 import Middleware.TwoPhaseCommit.TransactionalObject;
-import io.atomix.utils.net.Address;
-
-import java.time.Duration;
 import java.util.HashMap;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -45,38 +42,44 @@ public class TransactionalMap<K,V>{
     public void start() {
         System.out.println("dtm:regput -> starting");
         participant.startFirstPhase(firstPhaseAnswer);
-        participant.startSecondPhase(secondPhaseAnswer, commit, abort);
+        participant.startSecondPhase(isCommited, commit, abort);
     }
 
-    private Function<MapMessage<K,V>, Boolean> firstPhaseAnswer = (mm) ->{
-        if(valuesById.containsKey(mm.key))
-            return false;
+    private BiFunction<MapMessage<K,V>, Integer, Boolean> firstPhaseAnswer = (mm, tid) ->{
+        if(valuesById.containsKey(mm.key)){
+            //caso seja um pedido doutra transação aborta
+           if(valuesById.get(mm.key).getTransactionId() != tid)
+                return false;
+           //caso seja um pedido repetido devolve a mesma resposta
+           else return true;
+        }
         else{
-            TransactionalObject<V> to = new TransactionalObject<>(mm.value);
+            TransactionalObject<V> to = new TransactionalObject<>(mm.value, tid);
             valuesById.put(mm.key, to);
             return true;
         }
     };
 
-    private Function<MapMessage<K,V>, Boolean> secondPhaseAnswer = (mm) ->{
-        if(valuesById.get(mm.key).isCommited())
+    private Function<MapMessage<K,V>, Boolean> isCommited = (mm) ->{
+        if(!valuesById.containsKey(mm)) return false;
+            if(valuesById.get(mm).isCommited())
+                return true;
             return false;
-        return true;
     };
 
     private Consumer<MapMessage<K,V>> commit = (mm) -> {
         valuesById.get(mm.key).setCommited();
     };
 
-    private Consumer<MapMessage<K,V>> abort = (mm) -> {
-        valuesById.remove(mm.key);
+    private BiConsumer<MapMessage<K,V>, Integer> abort = (mm, tid) -> {
+        //tem de a conter -> caso em que dá um abort repetido
+        //e tem de ser da mesma transação -> caso em que temos 2 usernames iguais, o primeiro entra, e o segundo não
+        //mas o abort do segundo não pode tirar o primeiro
+        if(valuesById.containsKey(mm.key) && valuesById.get(mm.key).getTransactionId() == tid)
+            valuesById.remove(mm.key);
     };
 
     public void transactionalRecover(Object obj){
         participant.recovery(firstPhaseAnswer, commit, abort, (TransactionMessage)obj);
-    }
-
-    public void sendRecoveryRequest(Duration d, Consumer<Object> callback){
-        participant.sendRecoveryRequest(d,callback);
     }
 }

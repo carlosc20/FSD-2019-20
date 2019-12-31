@@ -5,15 +5,14 @@ import io.atomix.utils.net.Address;
 
 import java.time.Duration;
 import java.util.Scanner;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
 import java.util.function.Consumer;
 
 public class TestSendAndReceive {
     private int port;
     private ManagedMessagingService mms;
     private ExecutorService e;
+    private ScheduledExecutorService ses;
     int i = 0;
 
     public TestSendAndReceive(int port){
@@ -21,6 +20,7 @@ public class TestSendAndReceive {
         this.mms = new NettyMessagingService("irr", Address.from("localhost",port), new MessagingConfig());
         mms.start();
         this.e = Executors.newFixedThreadPool(1);
+        this.ses = Executors.newScheduledThreadPool(1);
     }
 
     public void receive() {
@@ -28,7 +28,7 @@ public class TestSendAndReceive {
             String msg = "olá " + c.address() + " eu sou o " + this.port + " " + new String(d);
             if(i == 0){
             try {
-                Thread.sleep(4000);
+                Thread.sleep(7000);
             } catch (InterruptedException e1) {
                 e1.printStackTrace();
             }}
@@ -37,7 +37,27 @@ public class TestSendAndReceive {
         }, e);
     }
 
+    public CompletableFuture<byte[]> send(String msg, Address b){
+        byte[] by = msg.getBytes();
+        CompletableFuture<byte[]> cf = new CompletableFuture<>();
+        ScheduledFuture<?> scheduledFuture = ses.scheduleAtFixedRate(()->
+            mms.sendAndReceive(b,"a", by, Duration.ofSeconds(1), e)
+                    .whenComplete((m,t) -> {
+                        if(t!=null){
+                            System.out.println("timeout");
+                        }
+                        else{
+                            System.out.println("completing future");
+                            cf.complete(m);
+                        }}), 0, 4, TimeUnit.SECONDS);
+        cf.whenComplete((m,t) -> scheduledFuture.cancel(true));
+        return cf;
+    }
+
+
     public CompletableFuture<byte[]> send2(String msg, Address b){
+        Runnable task = () -> send2(msg, b);
+        ses.schedule(task, 4, TimeUnit.SECONDS);
         return send1(msg,b).thenCompose(msg2 -> {
             if(msg2 == null)
                 return send2(msg,b);
@@ -58,18 +78,6 @@ public class TestSendAndReceive {
                 });
     }
 
-    public void send(String msg, Address b, Consumer<Object> callback){
-        byte[] by = msg.getBytes();
-        mms.sendAndReceive(b,"a", by, Duration.ofSeconds(3), e).whenComplete((m, throwable) ->{
-            if(throwable!=null) {
-                System.out.println("resending");
-                send(msg, b, callback);
-            }
-            else
-                callback.accept(m);
-        });
-    }
-
     public static void main(String[] args) throws InterruptedException {
         int id = Integer.parseInt(new Scanner(System.in).nextLine());
         TestSendAndReceive tsr = new TestSendAndReceive(10000+id);
@@ -78,12 +86,11 @@ public class TestSendAndReceive {
         }
         else {
             tsr.receive();
-            tsr.send2("o", Address.from(10000)).thenAccept(x -> {
+            tsr.send("o", Address.from(10000)).thenAccept(x -> {
                         byte[] str = (byte[]) x;
                         String ptr = new String(str);
                         System.out.println(ptr);
                     });
-            System.out.println("oijfoimfapenf");
         }
     }
 }

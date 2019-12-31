@@ -210,9 +210,10 @@ public class Server {
         Thread.sleep(5000);
         Server s = new Server(id, addresses.get(id), addresses, manager);
         s.startListeningToText();
-        if(id == 0 ) {
-            s.publisher.register("mara", "123");
-        }
+
+        if(id == 0)
+            s.publisher.register("mar", "123");
+
             //s.send("Olá", addresses.get(0));
         //}
     }
