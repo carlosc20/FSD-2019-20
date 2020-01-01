@@ -7,8 +7,14 @@ import Middleware.TwoPhaseCommit.Participant;
 import io.atomix.utils.net.Address;
 import io.atomix.utils.serializer.Serializer;
 
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public class Server {
 
@@ -200,7 +206,7 @@ public class Server {
         sms.send(a, ma, "spreadText");
     }
 
-    public static void main(String[] args) throws InterruptedException {
+    public static void main(String[] args) throws InterruptedException, IOException {
         ArrayList<Address> addresses = new ArrayList<>();
         Address manager = Address.from("localhost", 20000);
         for(int i = 0; i<2; i++){
@@ -210,10 +216,6 @@ public class Server {
         Thread.sleep(5000);
         Server s = new Server(id, addresses.get(id), addresses, manager);
         s.startListeningToText();
-
-        if(id == 0)
-            s.publisher.register("mar", "123");
-
             //s.send("Olá", addresses.get(0));
         //}
     }

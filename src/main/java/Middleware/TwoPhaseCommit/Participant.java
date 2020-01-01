@@ -35,9 +35,7 @@ public class Participant {
     public <T> CompletableFuture<byte[]> sendTransaction(T toSend){
         TransactionMessage<T> tm = new TransactionMessage<>(id, toSend);
         System.out.println("dtm:sendTransaction -> starting transaction");
-        sms.sendAndReceiveLoop(manager, "startTransaction", tm, 6, x ->System.out.println("received"));
-        //TODO corrigir se der
-        return CompletableFuture.completedFuture(null);
+        return sms.sendToManager(manager, "startTransaction", tm, 6);
     }
 
     private <T> byte[] parseFirstphaseTM(TransactionMessage<T> tm, BiFunction<T,Integer,Boolean> firstPhaseAnswer){

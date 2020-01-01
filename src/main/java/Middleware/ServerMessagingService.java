@@ -9,6 +9,7 @@ import io.atomix.cluster.messaging.MessagingConfig;
 import io.atomix.cluster.messaging.impl.NettyMessagingService;
 import io.atomix.utils.net.Address;
 import io.atomix.utils.serializer.Serializer;
+import org.apache.commons.math3.analysis.function.Add;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -17,6 +18,8 @@ import java.util.concurrent.*;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class ServerMessagingService {
     private int id;
@@ -80,22 +83,60 @@ public class ServerMessagingService {
         },e);
     }
 
-    public <T> CompletableFuture<Void> sendAndReceiveToCluster(String type, T content, Consumer<T> callback){
+    //do participante para o manager
+    public CompletableFuture<byte[]> sendToManager(Address a, String type, Object content, int seconds){
+        System.out.println("sms:sendToManager -> type == " + type);
+        return mms.sendAndReceive(a, type, s.encode(content), Duration.ofSeconds(10), e)
+                .handle((m,t)->{
+                    if(t!=null){
+                        t.printStackTrace();
+                        //para debug
+                        System.out.println("Server is down try again later");
+                        return null;
+                    }
+                    else
+                        return m;
+                });
+    }
+    //Manager para os servidores
+    // sendV2("firstphase", content, senconds, (obj,cf) -> {if first phase ready cf.complete}).thenApply(sendV2("secondPhase",)
+    public CompletableFuture<Void> sendAndReceiveToCluster(String type, Object content, int seconds, Consumer<Object> callback){
+        System.out.println("sms:sendAndReceiveLoopToCluster -> type == " + type);
         List<CompletableFuture<Void>> requests = new ArrayList<>();
         for (Address a : participants){
-            requests.add(mms.sendAndReceive(a, type, s.encode(content))
-                        .thenAccept(x -> callback.accept(s.decode(x))));
+            requests.add(sendAndReceiveLoop(a, type, content, seconds)
+                    .thenAccept(x -> callback.accept(s.decode(x))));
         }
         return CompletableFuture.allOf(requests.toArray(new CompletableFuture[0]));
     }
 
-    public <T> CompletableFuture<Void> sendAndReceiveToCluster(String type, T content){
+
+    public CompletableFuture<Void> sendAndReceiveToCluster(String type, Object content, int seconds){
+        System.out.println("sms:sendAndReceiveLoopToCluster -> type == " + type);
         List<CompletableFuture<byte[]>> requests = new ArrayList<>();
-        for (Address a : participants){
-            requests.add(mms.sendAndReceive(a, type, s.encode(content)));
-        }
+        for (Address a : participants)
+            requests.add(sendAndReceiveLoop(a, type, content, seconds));
         return CompletableFuture.allOf(requests.toArray(new CompletableFuture[0]));
     }
+
+
+
+    public CompletableFuture<byte[]> sendAndReceiveLoop(Address a, String type, Object content, int seconds){
+        CompletableFuture<byte[]> cf = new CompletableFuture<>();
+        ScheduledFuture<?> scheduledFuture = ses.scheduleAtFixedRate(()->
+                mms.sendAndReceive(a, type, s.encode(content), e)
+                        .whenComplete((m,t) -> {
+                            if(t!=null){
+                                System.out.println("timeout");
+                            }
+                            else{
+                                //System.out.println("completing future message " + s.decode(m).toString());
+                                cf.complete(m);
+                            }}), 0, seconds, TimeUnit.SECONDS);
+        cf.whenComplete((m,t) -> scheduledFuture.cancel(true));
+        return cf;
+    }
+
 
     //TODO pq não void?
     public CompletableFuture<Void> sendAsyncToCluster(String type, Object content) {
@@ -110,29 +151,6 @@ public class ServerMessagingService {
         return mms.sendAndReceive(a, type, s.encode(content),e)
                     .thenApply(b -> s.decode(b));
     }
-
-    public void sendAndReceiveLoopToCluster(String type, Object content, int seconds, Consumer<Object> callback){
-        System.out.println("sms:sendAndReceiveLoopToCluster -> type == " + type);
-        for (Address a : participants){
-            sendAndReceiveLoop(a,type,content,seconds,callback);
-        }
-    }
-
-    public void sendAndReceiveLoop(Address a, String type, Object content, int seconds, Consumer<Object> callback){
-        mms.sendAndReceive(a, type, s.encode(content), e)
-                .whenComplete((message, throwable) ->{
-                    if(throwable!=null){
-                        //throwable.printStackTrace();
-                        System.out.println("timeout resending msg with type +" + type + " to " + a);
-                        Runnable task = () -> sendAndReceiveLoop(a, type,content,seconds, callback);
-                        ses.schedule(task, seconds, TimeUnit.SECONDS);
-                    }
-                    else {
-                        callback.accept(decode(message));
-                    }
-                });
-    }
-
 
     public <T> CompletableFuture<Void> sendAsync(Address a, String type, T content){
         return mms.sendAsync(a,type,s.encode(content));

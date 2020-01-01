@@ -5,8 +5,6 @@ import io.atomix.storage.journal.SegmentedJournal;
 import io.atomix.storage.journal.SegmentedJournalReader;
 import io.atomix.storage.journal.SegmentedJournalWriter;
 import io.atomix.utils.serializer.Serializer;
-
-import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
@@ -26,10 +24,7 @@ public class Logger {
 
     public void write(Object o){
         w.append(o);
-        CompletableFuture.supplyAsync(() -> {
-            w.flush();
-            return null;
-        });
+        w.flush();
     }
 
     public void recover(Consumer<Object> callback) {
