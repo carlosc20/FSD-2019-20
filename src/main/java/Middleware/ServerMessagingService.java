@@ -9,6 +9,7 @@ import io.atomix.cluster.messaging.MessagingConfig;
 import io.atomix.cluster.messaging.impl.NettyMessagingService;
 import io.atomix.utils.net.Address;
 import io.atomix.utils.serializer.Serializer;
+import io.netty.channel.ConnectTimeoutException;
 import org.apache.commons.math3.analysis.function.Add;
 
 import java.time.Duration;
@@ -33,7 +34,7 @@ public class ServerMessagingService {
     public ServerMessagingService(int id, Address address, List<Address> participants, Logger log, Serializer s){
         this.id = id;
         //TODO passar executor para fora?
-        this.ses = Executors.newScheduledThreadPool(1);
+        this.ses = Executors.newScheduledThreadPool(8);
         this.e = Executors.newFixedThreadPool(1);
         this.mms = new NettyMessagingService(
                 "server",
@@ -66,7 +67,10 @@ public class ServerMessagingService {
 
     public void registerCompletableOperation(String type, BiFunction<Address, byte[], CompletableFuture<byte[]>> callback){
         mms.registerHandler(type, callback);
+    }
 
+    public void registerOperation(String type, BiFunction<Address, byte[], byte[]> callback, Executor e){
+        mms.registerHandler(type, callback, e);
     }
 
     public void registerOperation(String type, BiConsumer<Address,byte[]> callback){
@@ -83,25 +87,11 @@ public class ServerMessagingService {
         },e);
     }
 
-    //do participante para o manager
-    public CompletableFuture<byte[]> sendToManager(Address a, String type, Object content, int seconds){
-        System.out.println("sms:sendToManager -> type == " + type);
-        return mms.sendAndReceive(a, type, s.encode(content), Duration.ofSeconds(10), e)
-                .handle((m,t)->{
-                    if(t!=null){
-                        t.printStackTrace();
-                        //para debug
-                        System.out.println("Server is down try again later");
-                        return null;
-                    }
-                    else
-                        return m;
-                });
-    }
+
     //Manager para os servidores
     // sendV2("firstphase", content, senconds, (obj,cf) -> {if first phase ready cf.complete}).thenApply(sendV2("secondPhase",)
     public CompletableFuture<Void> sendAndReceiveToCluster(String type, Object content, int seconds, Consumer<Object> callback){
-        System.out.println("sms:sendAndReceiveLoopToCluster -> type == " + type);
+        //System.out.println("sms:sendAndReceiveLoopToCluster -> type == " + type + content.toString());
         List<CompletableFuture<Void>> requests = new ArrayList<>();
         for (Address a : participants){
             requests.add(sendAndReceiveLoop(a, type, content, seconds)
@@ -112,11 +102,23 @@ public class ServerMessagingService {
 
 
     public CompletableFuture<Void> sendAndReceiveToCluster(String type, Object content, int seconds){
-        System.out.println("sms:sendAndReceiveLoopToCluster -> type == " + type);
+        System.out.println("sms:sendAndReceiveLoopToCluster -> type == " + type + content.toString());
         List<CompletableFuture<byte[]>> requests = new ArrayList<>();
         for (Address a : participants)
             requests.add(sendAndReceiveLoop(a, type, content, seconds));
         return CompletableFuture.allOf(requests.toArray(new CompletableFuture[0]));
+    }
+
+    //protótipo
+    public CompletableFuture<List<byte[]>> sendAndReceiveToClusterProto(String type, Object content, int seconds){
+        System.out.println("sms:sendAndReceiveLoopToCluster -> type == " + type + content.toString());
+        List<CompletableFuture<byte[]>> requests = new ArrayList<>();
+        for (Address a : participants)
+            requests.add(sendAndReceiveLoop(a, type, content, seconds));
+        return CompletableFuture.allOf(requests.toArray(new CompletableFuture[0]))
+                .thenApply(v -> requests.stream()
+                        .map(CompletableFuture::join)
+                        .collect(Collectors.toList()));
     }
 
 
@@ -127,14 +129,19 @@ public class ServerMessagingService {
                 mms.sendAndReceive(a, type, s.encode(content), e)
                         .whenComplete((m,t) -> {
                             if(t!=null){
-                                System.out.println("timeout");
+                                if(t instanceof ConnectTimeoutException){
+                                    System.out.println("server down");
+                                }
+                                else {
+                                    System.out.println("server not responding");
+                                }
                             }
                             else{
-                                //System.out.println("completing future message " + s.decode(m).toString());
+                                System.out.println("completing future message " + s.decode(m).toString());
                                 cf.complete(m);
                             }}), 0, seconds, TimeUnit.SECONDS);
-        cf.whenComplete((m,t) -> scheduledFuture.cancel(true));
-        return cf;
+
+        return cf.whenComplete((m,t) -> scheduledFuture.cancel(true));
     }
 
 
@@ -151,6 +158,11 @@ public class ServerMessagingService {
         return mms.sendAndReceive(a, type, s.encode(content),e)
                     .thenApply(b -> s.decode(b));
     }
+
+    public CompletableFuture<byte[]> sendAndReceive(Address a, String type, Object content, Duration d, ExecutorService e){
+        return mms.sendAndReceive(a, type, s.encode(content), d, e);
+    }
+
 
     public <T> CompletableFuture<Void> sendAsync(Address a, String type, T content){
         return mms.sendAsync(a,type,s.encode(content));
@@ -193,11 +205,4 @@ public class ServerMessagingService {
     public <T> T decode(byte[] bytes){
         return s.decode(bytes);
     }
-
-    //DEBUG
-    public void send(Address address, Object msg, String type){
-        System.out.println("sms:send ->");
-        mms.sendAsync(address, type, s.encode(msg));
-    }
-
 }

@@ -1,14 +1,14 @@
 package Middleware.TwoPhaseCommit;
 
 public class TransactionMessage<V>  {
-    private int senderId;
+    private int requestId;
     private int transactionId;
     private char type;
     private int phase;
     private V content;
 
-    public TransactionMessage(int senderId, V content){
-        this.senderId = senderId;
+    public TransactionMessage(int requestId, V content){
+        this.requestId = requestId;
         this.transactionId = -1;
         this.type = 'b';
         this.phase = 0;
@@ -59,12 +59,8 @@ public class TransactionMessage<V>  {
         return content;
     }
 
-    public int getSenderId() {
-        return senderId;
-    }
-
-    public void setSenderId(int senderId) {
-        this.senderId = senderId;
+    public int getRequestId() {
+        return requestId;
     }
 
     public void setContent(V content) {
@@ -85,7 +81,7 @@ public class TransactionMessage<V>  {
     @Override
     public String toString() {
         return "TransactionMessage{" +
-                "senderId=" + senderId +
+                "senderId=" + requestId +
                 ", transactionId=" + transactionId +
                 ", content= " + content.toString() +
                 ", type=" + type +

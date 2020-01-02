@@ -192,20 +192,6 @@ public class Server {
         });
     }
 
-    public void startListeningToText(){
-        sms.registerOperation("spreadText", (a,b)->{
-            System.out.println(id + ": received spread request ratatataTa");
-            sms.sendCausalOrderAsyncToCluster("text", b);
-        });
-        sms.registerOrderedOperation("text", msg->
-            System.out.println("server:startListeningToText -> received: " + msg.toString()));
-    }
-
-    public void send(String text, Address a){
-        MessageAuth ma = new MessageAuth("boi", "123");
-        sms.send(a, ma, "spreadText");
-    }
-
     public static void main(String[] args) throws InterruptedException, IOException {
         ArrayList<Address> addresses = new ArrayList<>();
         Address manager = Address.from("localhost", 20000);
@@ -215,8 +201,10 @@ public class Server {
         int id = Integer.parseInt(new Scanner(System.in).nextLine());
         Thread.sleep(5000);
         Server s = new Server(id, addresses.get(id), addresses, manager);
-        s.startListeningToText();
-            //s.send("Olá", addresses.get(0));
-        //}
+
+        if(id == 0)
+            s.publisher.register("marco", "123");
+
+
     }
 }
