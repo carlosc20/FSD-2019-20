@@ -28,8 +28,9 @@ public class PublisherImpl implements Publisher {
     private static final int n = 10; // nr de posts devolvidos no getLast
 
 
-    public PublisherImpl(List<String> topics, Participant p, ServerMessagingService sms, Logger log) {
+    public PublisherImpl(List<String> topics, int id, Address manager, ServerMessagingService sms, Logger log) {
         this.lastPostId = 0;
+        Participant p = new Participant(id, manager, sms, log);
         this.users = new TransactionalMap<>(p);
         this.posts = new HashMap<>();
         for(String topic: topics) {

@@ -12,10 +12,10 @@ public class Client {
 
         Scanner scanner = new Scanner(System.in);
 
-        System.out.println("Insira a porta do servidor:");
+        System.out.println("Insira a porta do cliente:");
         int port = scanner.nextInt();
         scanner.nextLine();
-        Publisher publisher = new PublisherStub(Address.from(port));
+        Publisher publisher = new PublisherStub(port);
 
         while (true) {
             String input = scanner.nextLine();

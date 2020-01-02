@@ -40,12 +40,11 @@ public class ServerMessagingService {
                 "server",
                 address,
                 new MessagingConfig());
-        this.participants = new ArrayList<>();
         this.s = s;
+        this.participants = new ArrayList<>();
         int pSize = participants.size();
-        //não contém ele próprio
         for(int i = 0; i<pSize; i++){
-            if(i==id) continue;
+            if(i==id) continue; //não contém ele próprio
             this.participants.add(participants.get(i));
         }
         this.coh = new CausalOrderHandler(id, pSize, s, log);
@@ -53,17 +52,14 @@ public class ServerMessagingService {
 
     public void start(){
         mms.start();
-        registerOperation("causalOrderRecovery", (a,b)->{
+        mms.registerHandler("causalOrderRecovery", (a,b)->{
             System.out.println("recovery:handler -> Received request from: " + a);
-            boolean state = coh.treatRecoveryRequest(decode(b),
+            boolean state = coh.treatRecoveryRequest(s.decode(b),
                     msg2 -> sendAsync(a, msg2.getOperation(), msg2));
-            return encode(state);
-        });
+            return s.encode(state);
+        },e);
     }
 
-    public <T> void registerOperation(String type, Consumer<T> callback){
-        mms.registerHandler(type, (a,b) -> {callback.accept(s.decode(b));}, e);
-    }
 
     public void registerCompletableOperation(String type, BiFunction<Address, byte[], CompletableFuture<byte[]>> callback){
         mms.registerHandler(type, callback);
@@ -77,15 +73,6 @@ public class ServerMessagingService {
         mms.registerHandler(type, callback, e);
     }
 
-    public void registerOperation(String type, BiFunction<Address, byte[], byte[]> callback){
-        mms.registerHandler(type, callback, e);
-    }
-
-    public void registerOrderedOperation(String name, Consumer<Object> callback){
-        mms.registerHandler(name, (a,b) -> {
-            coh.read(b, callback);
-        },e);
-    }
 
 
     //Manager para os servidores
@@ -195,7 +182,7 @@ public class ServerMessagingService {
     }
 
     public void causalOrderRecover(Object msg, Consumer<Object> callback){
-        coh.recoveryRead(encode(msg), callback);
+        coh.recoveryRead(s.encode(msg), callback);
     }
 
     public <T> byte[] encode(T object){

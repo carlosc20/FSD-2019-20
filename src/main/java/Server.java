@@ -1,36 +1,33 @@
 import Logic.Publisher;
 import Middleware.GlobalSerializer;
 import Middleware.Logging.Logger;
-import Middleware.Marshalling.*;
+import Middleware.Marshalling.MessageAuth;
+import Middleware.Marshalling.MessageReply;
+import Middleware.Marshalling.MessageSend;
+import Middleware.Marshalling.MessageSub;
 import Middleware.ServerMessagingService;
-import Middleware.TwoPhaseCommit.Participant;
 import io.atomix.utils.net.Address;
 import io.atomix.utils.serializer.Serializer;
 
-import java.io.BufferedWriter;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Scanner;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 public class Server {
 
-    private int id; //para debug
     private ServerMessagingService sms;
     private Publisher publisher;
     private Serializer s;
+    private static final ArrayList<String> topics = new ArrayList<>(Arrays.asList("Animais","Plantas","Carros"));
 
     public Server(int id, Address address, List<Address> servers, Address manager){
-         this.id = id;
          this.s = new GlobalSerializer().build();
          Logger log = new Logger("logs", "Server" + id, s);
          this.sms = new ServerMessagingService(id, address, servers, log, s);
-         List<String> topics = new ArrayList<>();
-         Participant p = new Participant(id, manager, sms, log);
-         this.publisher = new PublisherImpl(topics, p, sms, log);
+         this.publisher = new PublisherImpl(topics, id, manager, sms, log);
     }
 
     public void start(){
@@ -48,7 +45,7 @@ public class Server {
     private void startListeningToRegisters(){
         // client
         sms.registerCompletableOperation("clientRegister", (a,b)->{
-            MessageAuth msg = sms.decode(b);
+            MessageAuth msg = s.decode(b);
             return publisher.register(msg.getUsername(), msg.getPassword()).thenApply(success -> {
                 if(success) {
                     sms.sendAsyncToCluster("register", b);
@@ -111,7 +108,7 @@ public class Server {
             return publisher.login(msg.getUsername(), msg.getPassword()).thenCompose(auth -> {
                 if(auth) {
                     return publisher.publish(msg.getUsername(), msg.getText(), msg.getTopics()).thenApply(v -> {
-                        sms.sendCausalOrderAsyncToCluster("publish", msg); //TODO criar msg para cluster sem passwd?
+                        sms.sendCausalOrderAsyncToCluster("publish", msg);
                         return s.encode(MessageReply.OK);
                     });
                 }
@@ -120,7 +117,7 @@ public class Server {
         });
         // cluster
         sms.registerOperation("publish", (a,b) ->{
-            MessageSend msg = sms.decode(b); //TODO criar msg para cluster sem passwd?
+            MessageSend msg = s.decode(b);
             publisher.publish(msg.getUsername(), msg.getText(), msg.getTopics());
         });
     }
@@ -131,11 +128,11 @@ public class Server {
     private void startListeningToSubOperations(){
         // client
         sms.registerCompletableOperation("clientAddSub", (a,b)->{
-            MessageSub msg = sms.decode(b);
+            MessageSub msg = s.decode(b);
             return publisher.login(msg.getUsername(), msg.getPassword()).thenCompose(auth -> {
                 if(auth) {
                     return publisher.addSubscription(msg.getUsername(), msg.getName()).thenApply(v -> {
-                        sms.sendAsyncToCluster("addSub", msg); //TODO criar msg para cluster sem passwd?
+                        sms.sendAsyncToCluster("addSub", msg);
                         return s.encode(MessageReply.OK);
                     });
                 }
@@ -143,11 +140,11 @@ public class Server {
             });
         });
         sms.registerCompletableOperation("clientRemoveSub", (a,b)->{
-            MessageSub msg = sms.decode(b);
+            MessageSub msg = s.decode(b);
             return publisher.login(msg.getUsername(), msg.getPassword()).thenCompose(auth -> {
                 if(auth) {
                     return publisher.removeSubscription(msg.getUsername(), msg.getName()).thenApply(v -> {
-                        sms.sendAsyncToCluster("removeSub", msg); //TODO criar msg para cluster sem passwd?
+                        sms.sendAsyncToCluster("removeSub", msg);
                         return s.encode(MessageReply.OK);
                     });
                 }
@@ -156,11 +153,11 @@ public class Server {
         });
         // cluster
         sms.registerOperation("addSub", (a,b) ->{
-            MessageSub msg = sms.decode(b); //TODO criar msg para cluster sem passwd?
+            MessageSub msg = s.decode(b);
             publisher.addSubscription(msg.getUsername(), msg.getName());
         });
         sms.registerOperation("removeSub", (a,b) ->{
-            MessageSub msg = sms.decode(b); //TODO criar msg para cluster sem passwd?
+            MessageSub msg = s.decode(b);
             publisher.removeSubscription(msg.getUsername(), msg.getName());
         });
     }
@@ -181,13 +178,13 @@ public class Server {
 
     private void startListeningToLogins2(){
         sms.registerCompletableOperation("clientLogin", (a,b)->{
-            MessageAuth msg = sms.decode(b);
+            MessageAuth msg = s.decode(b);
             return publisher.login(msg.getUsername(), msg.getPassword()).thenApply(success -> {
                 if(success) {
-                    return sms.encode(true);
+                    return s.encode(true);
                 }
                 else
-                    return sms.encode(false);
+                    return s.encode(false);
             });
         });
     }

@@ -4,23 +4,23 @@ import Middleware.*;
 import Middleware.Marshalling.*;
 import io.atomix.utils.net.Address;
 import io.atomix.utils.serializer.Serializer;
-import io.atomix.utils.serializer.SerializerBuilder;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import java.util.concurrent.CompletableFuture;
 
 public class PublisherStub implements Publisher {
 
     private ClientMessagingService ms;
     private Serializer s = new GlobalSerializer().build();
+    private static final int[] servers = new int[]{10000,10002,10003};
 
     // definido no método login
     private String sessionPW;
 
-    public PublisherStub(Address server) {
-        final int port = 12345; // porta predefinida
-        ms = new ClientMessagingService(server, Address.from(port));
+    public PublisherStub(int port) {
+        int rnd = new Random().nextInt(servers.length);
+        ms = new ClientMessagingService(Address.from(servers[rnd]), Address.from(port));
     }
 
     // é preciso usar este método antes dos outros para definir as credenciais

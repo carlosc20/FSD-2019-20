@@ -43,7 +43,7 @@ public class Manager {
 
     public void start() {
         sms.registerCompletableOperation("startTransaction", (a, b) -> {
-            TransactionMessage tm = sms.decode(b);
+            TransactionMessage tm = s.decode(b);
             beginTransaction(tm);
             System.out.println(tm.toString());
             log.write(tm);
@@ -87,9 +87,9 @@ public class Manager {
                                 tm.setFinished();
                                 log.write(tm);
                                 if(state)
-                                    reply.complete(sms.encode(0));
+                                    reply.complete(s.encode(0));
                                 else
-                                    reply.complete(sms.encode(1));
+                                    reply.complete(s.encode(1));
                                 //System.out.println("manager:secondphase -> removing entry to tid == " + tid);
                                 //acabou -> para responder a quem pede
                                 transactions.remove(tid);
@@ -114,7 +114,7 @@ public class Manager {
                 .thenAccept(list -> {
                     tm.setCommited();
                     for(byte[] b : list){
-                        TransactionMessage reply = sms.decode(b);
+                        TransactionMessage reply = s.decode(b);
                         if(reply.isAborted()){
                             tm.setAborted();
                         }

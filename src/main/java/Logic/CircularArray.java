@@ -16,7 +16,6 @@ public class CircularArray<E> {
         this.last = 0;
     }
 
-    // TODO ver quando ainda não tem 10 posts
     public List<E> getAll() {
         return array;
     }
