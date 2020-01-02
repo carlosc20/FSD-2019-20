@@ -1,6 +1,8 @@
 import Logic.Publisher;
 import Middleware.GlobalSerializer;
 import Middleware.Logging.Logger;
+import Middleware.Logging.SubscriptionLog;
+import Middleware.Logging.UnsubscriptionLog;
 import Middleware.Marshalling.MessageAuth;
 import Middleware.Marshalling.MessageReply;
 import Middleware.Marshalling.MessageSend;
@@ -21,10 +23,11 @@ public class Server {
     private ServerMessagingService sms;
     private Publisher publisher;
     private Serializer s = new GlobalSerializer().build();
+    private Logger log;
     private static final ArrayList<String> topics = new ArrayList<>(Arrays.asList("Animais","Plantas","Carros"));
 
     public Server(int id, Address address, List<Address> servers, Address manager){
-         Logger log = new Logger("logs", "Server" + id, s);
+         this.log = new Logger("logs", "Server" + id, s);
          this.sms = new ServerMessagingService(id, address, servers, log, s);
          this.publisher = new PublisherImpl(topics, id, manager, sms, log);
     }
@@ -131,7 +134,8 @@ public class Server {
             return publisher.login(msg.getUsername(), msg.getPassword()).thenCompose(auth -> {
                 if(auth) {
                     return publisher.addSubscription(msg.getUsername(), msg.getName()).thenApply(v -> {
-                        sms.sendAsyncToCluster("addSub", msg);
+                        log.write(new SubscriptionLog(msg));
+                        sms.sendAndReceiveToCluster("addSub", msg,6);
                         return s.encode(MessageReply.OK);
                     });
                 }
@@ -143,7 +147,8 @@ public class Server {
             return publisher.login(msg.getUsername(), msg.getPassword()).thenCompose(auth -> {
                 if(auth) {
                     return publisher.removeSubscription(msg.getUsername(), msg.getName()).thenApply(v -> {
-                        sms.sendAsyncToCluster("removeSub", msg);
+                        log.write(new UnsubscriptionLog(msg));
+                        sms.sendAndReceiveToCluster("removeSub", msg, 6);
                         return s.encode(MessageReply.OK);
                     });
                 }
@@ -154,10 +159,14 @@ public class Server {
         sms.registerOperation("addSub", (a,b) ->{
             MessageSub msg = s.decode(b);
             publisher.addSubscription(msg.getUsername(), msg.getName());
+            log.write(new SubscriptionLog(msg));
+            return sms.encode(0);
         });
         sms.registerOperation("removeSub", (a,b) ->{
             MessageSub msg = s.decode(b);
             publisher.removeSubscription(msg.getUsername(), msg.getName());
+            log.write(new UnsubscriptionLog(msg));
+            return sms.encode(0);
         });
     }
 

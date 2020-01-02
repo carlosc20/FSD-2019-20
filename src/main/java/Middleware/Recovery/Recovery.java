@@ -4,6 +4,7 @@ import Middleware.CausalOrder.VectorMessage;
 import Middleware.Logging.Logger;
 import Middleware.ServerMessagingService;
 import Middleware.TwoPhaseCommit.DistributedObjects.TransactionalMap;
+import Middleware.TwoPhaseCommit.TransactionMessage;
 import io.atomix.utils.net.Address;
 
 import java.util.HashMap;
@@ -27,8 +28,10 @@ public class Recovery {
         log.recover( (msg)->{
             if(msg instanceof VectorMessage)
                 sms.causalOrderRecover(msg, callback);
-            else
+            else if (msg instanceof TransactionMessage)
                 tmap.transactionalRecover(msg);
+            else
+                callback.accept(msg);
         });
 
         List<Integer> vector = sms.getVector();

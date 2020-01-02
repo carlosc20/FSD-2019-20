@@ -42,12 +42,7 @@ public class VectorMessage {
         if (o == null || getClass() != o.getClass()) return false;
         VectorMessage that = (VectorMessage) o;
         return id == that.id &&
-                v.equals(that.v);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(id, v);
+                vector.equals(that.vector);
     }
 
     @Override

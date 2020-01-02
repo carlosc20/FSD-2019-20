@@ -61,13 +61,19 @@ public class ServerMessagingService {
         mms.registerHandler(type, callback);
     }
 
-    public void registerOperation(String type, BiFunction<Address, byte[], byte[]> callback, Executor e){
+    public void registerOperation(String type, BiFunction<Address, byte[], byte[]> callback){
         mms.registerHandler(type, callback, e);
+    }
+
+
+    public void registerOperation(String type, BiFunction<Address, byte[], byte[]> callback, Executor exec){
+        mms.registerHandler(type, callback, exec);
     }
 
     public void registerOperation(String type, BiConsumer<Address,byte[]> callback){
         mms.registerHandler(type, callback, e);
     }
+
 
     //Manager para os servidores
     // sendV2("firstphase", content, senconds, (obj,cf) -> {if first phase ready cf.complete}).thenApply(sendV2("secondPhase",)
@@ -116,7 +122,7 @@ public class ServerMessagingService {
                         .collect(Collectors.toList()));
     }
 
-    private CompletableFuture<byte[]> sendAndReceiveLoop(Address a, String type, Object content, int seconds){
+    public CompletableFuture<byte[]> sendAndReceiveLoop(Address a, String type, Object content, int seconds){
         CompletableFuture<byte[]> cf = new CompletableFuture<>();
         ScheduledFuture<?> scheduledFuture = ses.scheduleAtFixedRate(()->
                 mms.sendAndReceive(a, type, s.encode(content), e)
