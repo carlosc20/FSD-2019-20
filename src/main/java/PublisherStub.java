@@ -13,7 +13,7 @@ public class PublisherStub implements Publisher {
 
     private ClientMessagingService ms;
     private Serializer s = new GlobalSerializer().build();
-    private static final int[] servers = new int[]{10000,10002,10003};
+    private static final int[] servers = new int[]{10000,10001,10002};
 
     // definido no método login
     private String sessionPW;
@@ -27,76 +27,76 @@ public class PublisherStub implements Publisher {
     @Override
     public CompletableFuture<Boolean> login(String username, String password) {
         MessageAuth msg = new MessageAuth(username, password);
-        return ms.sendAndReceive(s.encode(msg),"clientLogin").thenCompose(data -> {
+        return ms.sendAndReceive(s.encode(msg),"clientLogin").thenApply(data -> {
             boolean success = s.decode(data);
             if (success) sessionPW = password;
-            return CompletableFuture.completedFuture(success);
+            return success;
         });
     }
 
     @Override
     public CompletableFuture<Boolean> register(String username, String password) {
         MessageAuth msg = new MessageAuth(username, password);
-        return ms.sendAndReceive(s.encode(msg),"clientRegister").thenCompose(s::decode);
+        return ms.sendAndReceive(s.encode(msg),"clientRegister").thenApply(s::decode);
     }
 
     @Override
     public CompletableFuture<List<String>> getSubscriptions(String username) {
         MessageAuth msg = new MessageAuth(username, sessionPW);
-        return ms.sendAndReceive(s.encode(msg),"clientGetSubs").thenCompose(data -> {
+        return ms.sendAndReceive(s.encode(msg),"clientGetSubs").thenApply(data -> {
             MessageReply<List<String>> reply = s.decode(data);
             if (reply.getResponseStatusCode() == 0){
-                return CompletableFuture.completedFuture(reply.getContent());
+                return reply.getContent();
             }
-            return CompletableFuture.completedFuture(null);
+            return null;
         });
     }
 
     @Override
     public CompletableFuture<List<Post>> getLast10(String username) {
         MessageAuth msg = new MessageAuth(username, sessionPW);
-        return ms.sendAndReceive(s.encode(msg),"clientGetPosts").thenCompose(data -> {
+        return ms.sendAndReceive(s.encode(msg),"clientGetPosts").thenApply(data -> {
             MessageReply<List<Post>> reply = s.decode(data);
             if (reply.getResponseStatusCode() == 0){
-                return CompletableFuture.completedFuture(reply.getContent());
+                return reply.getContent();
             }
-            return CompletableFuture.completedFuture(null);
+            return null;
         });
     }
 
     @Override
     public CompletableFuture<Void> addSubscription(String username, String name) {
         MessageSub msg = new MessageSub(username, sessionPW, name);
-        return ms.sendAndReceive(s.encode(msg),"clientAddSub").thenCompose(data -> {
+        return ms.sendAndReceive(s.encode(msg),"clientAddSub").thenApply(data -> {
             MessageReply reply = s.decode(data);
             if (reply.getResponseStatusCode() == 0){
-                return CompletableFuture.completedFuture(null);
+                return null;
             }
-            return CompletableFuture.completedFuture(null);
+            return null;
         });
     }
 
     @Override
     public CompletableFuture<Void> removeSubscription(String username, String name) {
         MessageSub msg = new MessageSub(username, sessionPW, name);
-        return ms.sendAndReceive(s.encode(msg),"clientRemoveSub").thenCompose(data -> {
+        return ms.sendAndReceive(s.encode(msg),"clientRemoveSub").thenApply(data -> {
             MessageReply reply = s.decode(data);
             if (reply.getResponseStatusCode() == 0){
-                return CompletableFuture.completedFuture(null);
+                return null;
             }
-            return CompletableFuture.completedFuture(null);
+            return null;
         });
     }
 
     @Override
     public CompletableFuture<Void> publish(String username, String text, List<String> topics) {
         MessageSend msg = new MessageSend(username, sessionPW, topics, text);
-        return ms.sendAndReceive(s.encode(msg),"clientPublish").thenCompose(data -> {
+        return ms.sendAndReceive(s.encode(msg),"clientPublish").thenApply(data -> {
             MessageReply reply = s.decode(data);
             if (reply.getResponseStatusCode() == 0){
-                return CompletableFuture.completedFuture(null);
+                return null;
             }
-            return CompletableFuture.completedFuture(null);
+            return null;
         });
     }
 

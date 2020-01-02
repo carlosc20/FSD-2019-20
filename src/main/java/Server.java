@@ -20,11 +20,10 @@ public class Server {
 
     private ServerMessagingService sms;
     private Publisher publisher;
-    private Serializer s;
+    private Serializer s = new GlobalSerializer().build();
     private static final ArrayList<String> topics = new ArrayList<>(Arrays.asList("Animais","Plantas","Carros"));
 
     public Server(int id, Address address, List<Address> servers, Address manager){
-         this.s = new GlobalSerializer().build();
          Logger log = new Logger("logs", "Server" + id, s);
          this.sms = new ServerMessagingService(id, address, servers, log, s);
          this.publisher = new PublisherImpl(topics, id, manager, sms, log);

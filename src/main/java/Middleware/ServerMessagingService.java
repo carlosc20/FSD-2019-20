@@ -60,6 +60,13 @@ public class ServerMessagingService {
         },e);
     }
 
+    public void registerOrderedOperation(String name, BiConsumer<Address,Object> callback){
+        mms.registerHandler(name, (a,b) -> {
+            coh.read(b, o->{
+                callback.accept(a,o);
+            });
+        },e);
+    }
 
     public void registerCompletableOperation(String type, BiFunction<Address, byte[], CompletableFuture<byte[]>> callback){
         mms.registerHandler(type, callback);
@@ -175,7 +182,7 @@ public class ServerMessagingService {
         for(Address a : participants){
             MessageRecovery mr = new MessageRecovery(id, vector.get(i));
             mms.sendAndReceive(a, "causalOrderRecovery", s.encode(mr), timout, e)
-                    .thenAccept(b -> System.out.println("sms:sendAndReceiveForRecovery -> " + (boolean)s.decode(b) + " by " + a));
+                    .thenAccept(b -> System.out.println("sms:sendAndReceiveForRecovery -> " + s.decode(b) + " by " + a));
             i++;
         }
         return CompletableFuture.completedFuture(null);
