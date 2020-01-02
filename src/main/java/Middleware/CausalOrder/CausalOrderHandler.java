@@ -1,7 +1,7 @@
 package Middleware.CausalOrder;
 
 import Middleware.Logging.Logger;
-import Middleware.Marshalling.MessageRecovery;
+import Middleware.Recovery.MessageRecovery;
 import io.atomix.utils.serializer.Serializer;
 
 import java.util.*;
@@ -28,10 +28,6 @@ public class CausalOrderHandler {
         this.nra = new NeighboursRecoveryAssistant(id, s, vector, log);
     }
 
-    public boolean treatRecoveryRequest(MessageRecovery mr, Consumer<VectorMessage> callback){
-        return nra.getMissingOperations(mr, callback);
-    }
-
     public void logAndSaveNonAckedOperation(byte[] toSend){
         System.out.println("coh:logAndSaveNonAckedOperation -> clock of this message: " + vector.get(id));
         VectorMessage vm = s.decode(toSend);
@@ -45,7 +41,7 @@ public class CausalOrderHandler {
 
     public byte[] createMsg(Object content, String operation) {
         vector.set(id, vector.get(id) + 1); // incrementa vetor local
-        VectorMessage vm = new VectorMessage(id, vector, content, operation);
+        VectorMessage vm = new VectorMessage(id, vector, content);
 
         System.out.println(vm.toString());
         //TODO cuidado
@@ -62,6 +58,10 @@ public class CausalOrderHandler {
         read(1, b, callback);
     }
 
+    public void resendMessagesRead(byte[] b, Consumer<Object> callback){
+        read(3, b, callback);
+    }
+
     // type 0 -> normal, 1 -> logs
     private void read(int type, byte[] b, Consumer<Object> callback){
         VectorMessage msg = s.decode(b);
@@ -73,7 +73,10 @@ public class CausalOrderHandler {
         else if(msg.getId() == id) { // logs
             nra.saveUnackedOperation(vector.get(id), msg);
         }
-
+        else{
+            for(VectorMessage vm : msgQueue)
+                if(msg.equals(vm)) return;
+        }
         // vê se está ordenada, se não vai para queue
         if(inOrder(msg)){
             System.out.println("coh:read"+type+ " -> inOrder");
@@ -132,9 +135,13 @@ public class CausalOrderHandler {
         return true;
     }
 
+    public MessageRecovery getMissingOperationMessage(List<Integer> vector){
+        return nra.getMissingOperationMessage(vector);
+    }
 
-
-
+    public VectorMessage getVectorMessage(int messageId){
+        return nra.getVectorMessage(messageId);
+    }
 
     //DEBUG
     private void printArray(List<Integer> v, String header){

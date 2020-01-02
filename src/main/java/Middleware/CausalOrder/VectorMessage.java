@@ -1,19 +1,18 @@
 package Middleware.CausalOrder;
 
 import java.util.List;
+import java.util.Objects;
 
 public class VectorMessage {
 
     private int id;
     private List<Integer> v;
     private Object content;
-    private String operation; //para a recovery
 
-    public VectorMessage(int id, List<Integer> v, Object content, String operation){
+    public VectorMessage(int id, List<Integer> v, Object content){
         this.id = id;
         this.v = v;
         this.content = content;
-        this.operation = operation;
     }
 
     public Object getContent(){
@@ -32,12 +31,23 @@ public class VectorMessage {
         return this.v;
     }
 
-    public String getOperation() {
-        return operation;
-    }
 
     public int getIndex(int index) {
         return v.get(index);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        VectorMessage that = (VectorMessage) o;
+        return id == that.id &&
+                v.equals(that.v);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, v);
     }
 
     @Override

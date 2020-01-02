@@ -3,6 +3,7 @@ package Middleware;
 import Logic.User;
 import Middleware.CausalOrder.VectorMessage;
 import Middleware.Marshalling.*;
+import Middleware.Recovery.MessageRecovery;
 import Middleware.TwoPhaseCommit.DistributedObjects.MapMessage;
 import Middleware.TwoPhaseCommit.TransactionMessage;
 import io.atomix.utils.net.Address;

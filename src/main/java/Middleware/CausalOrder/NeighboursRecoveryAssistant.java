@@ -1,13 +1,12 @@
 package Middleware.CausalOrder;
 
 import Middleware.Logging.Logger;
-import Middleware.Marshalling.MessageRecovery;
+import Middleware.Recovery.MessageRecovery;
 import io.atomix.utils.serializer.Serializer;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
 public class NeighboursRecoveryAssistant {
@@ -51,20 +50,16 @@ public class NeighboursRecoveryAssistant {
             nonAcknowledgedOperations.remove(clockValue);
     }
 
-    public boolean getMissingOperations(MessageRecovery mr, Consumer<VectorMessage> callback){
-        int senderClock = mr.getSavepoint();
-        int numOp = nonAcknowledgedOperations.size();
-        System.out.println("cohr:getMissingOperations -> sender clock " + senderClock);
-        System.out.println("cohr:getMissingOperations -> number of unacked operations " + numOp);
-        if(senderClock < numOp){
-            for(int i = senderClock + 1; i <= numOp; i++){
-                System.out.println("cohr:getMissingOperations -> sending operation with clock: " + i);
-                System.out.println("cohr:getMissingOperations -> " + nonAcknowledgedOperations.get(i));
-                callback.accept(nonAcknowledgedOperations.get(i));
-            }
-            return true;
-        }
-        return false;
+    public MessageRecovery getMissingOperationMessage(List<Integer> vector){
+        int savepoint = myClockOnCluster.get(vector.get(this.id));
+        int total = nonAcknowledgedOperations.size();
+        System.out.println("cohr:getMissingOperations -> sender clock " + savepoint);
+        System.out.println("cohr:getMissingOperations -> total number of unacked operations " + total);
+        return new MessageRecovery(this.id, total);
+    }
+
+    public VectorMessage getVectorMessage(int messageid){
+        return nonAcknowledgedOperations.get(messageid);
     }
 
     public void logOrderedOperation(VectorMessage vm){
