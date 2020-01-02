@@ -65,10 +65,6 @@ public class CausalOrderHandler {
         read(0, b, callback);
     }
 
-    public void recoveryRead(byte[] b, Consumer<Object> callback){
-        read(1, b, callback);
-    }
-
     public void resendMessagesRead(byte[] b, Consumer<Object> callback){
         read(3, b, callback);
     }
