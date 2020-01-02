@@ -37,7 +37,6 @@ public class Manager {
         this.log = new Logger("logs", "Manager", s);
         this.sms = new ServerMessagingService(id, address, participants, log, s);
         this.staticParticipants = participants;
-        sms.start();
         recover();
     }
 
@@ -110,7 +109,7 @@ public class Manager {
     private CompletableFuture<TransactionMessage> startFullProtocolPrototipe(TransactionMessage tm){
         int tid = tm.getTransactionId();
         CompletableFuture<TransactionMessage> cf = new CompletableFuture<>();
-        sms.sendAndReceiveToClusterProto("firstphase", tm, 6)
+        sms.sendAndReceiveToClusterJoined("firstphase", tm, 6)
                 .thenAccept(list -> {
                     tm.setCommited();
                     for(byte[] b : list){
@@ -172,7 +171,7 @@ public class Manager {
     public static void main(String[] args) throws IOException {
         ArrayList<Address> addresses = new ArrayList<>();
         Address manager = Address.from("localhost", 20000);
-        for(int i = 0; i<2; i++){
+        for(int i = 0; i<3; i++){
             addresses.add(Address.from("localhost",10000 + i));
         }
         Manager managerServer = new Manager(100, manager, addresses);

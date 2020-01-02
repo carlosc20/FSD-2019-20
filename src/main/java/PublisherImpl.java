@@ -3,7 +3,7 @@ import Logic.Post;
 import Logic.Publisher;
 import Logic.User;
 
-import Middleware.Recovery;
+import Middleware.Recovery.Recovery;
 import Middleware.TwoPhaseCommit.DistributedObjects.TransactionalMap;
 import Middleware.Logging.Logger;
 import Middleware.ServerMessagingService;
@@ -29,8 +29,10 @@ public class PublisherImpl implements Publisher {
         for(String topic: topics) {
             posts.put(topic, new CircularArray<>(n));
         }
-        sms.start();
-        new Recovery(log).start((obj) -> {}, sms, users);
+        new Recovery(log,sms).start((obj) -> {
+            //recebes o conteudo de um VectorMessage
+            //TODO
+        }, users);
         users.start();
     }
 

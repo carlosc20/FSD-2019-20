@@ -191,7 +191,7 @@ public class Server {
     public static void main(String[] args) throws InterruptedException, IOException {
         ArrayList<Address> addresses = new ArrayList<>();
         Address manager = Address.from("localhost", 20000);
-        for(int i = 0; i<2; i++){
+        for(int i = 0; i<3; i++){
             addresses.add(Address.from("localhost",10000 + i));
         }
         int id = Integer.parseInt(new Scanner(System.in).nextLine());
