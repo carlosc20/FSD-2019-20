@@ -1,18 +1,18 @@
 package Logic;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
 public class User {
 
     private String name;
     private String password;
-    private List<String> subscriptions;
+    private Set<String> subscriptions;
 
     public User(String name, String password) {
         this.name = name;
         this.password = password;
-        subscriptions = new ArrayList<>();
+        subscriptions = new HashSet<>();
     }
 
     public String getName() {
@@ -23,7 +23,7 @@ public class User {
         return password;
     }
 
-    public List<String> getSubscriptions() {
+    public Set<String> getSubscriptions() {
         return subscriptions;
     }
 

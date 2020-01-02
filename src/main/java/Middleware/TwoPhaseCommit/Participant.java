@@ -33,13 +33,14 @@ public class Participant {
     }
 
     public <T> void startFirstPhase(BiFunction<T,Integer, Boolean> firstPhaseAnswer){
-        sms.<TransactionMessage<T>>registerOperation("firstphase", (a,b) -> {
-            return parseFirstphaseTM(sms.decode(b), firstPhaseAnswer);}, ses);
+        sms.registerOperation("firstphase",
+                (a,b) -> parseFirstphaseTM(sms.decode(b), firstPhaseAnswer), ses);
     }
 
     public <T> void startSecondPhase(Function<T,Boolean> secondPhaseAnswer, Consumer<T> commit, BiConsumer<T,Integer> abort){
-        sms.<TransactionMessage<T>>registerOperation("secondphase",
-                (a,b) -> {return parseSecondPhaseTM(sms.decode(b), secondPhaseAnswer, commit, abort);}, ses);
+        sms.registerOperation("secondphase",
+                (a,b) -> parseSecondPhaseTM(sms.decode(b), secondPhaseAnswer, commit, abort), ses);
+
     }
 
 

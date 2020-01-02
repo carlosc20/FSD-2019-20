@@ -28,6 +28,9 @@ public class CausalOrderHandler {
         this.nra = new NeighboursRecoveryAssistant(id, s, vector, log);
     }
 
+
+    // recovery  -------------------------------------------------------------------------------------------------------
+
     public boolean treatRecoveryRequest(MessageRecovery mr, Consumer<VectorMessage> callback){
         return nra.getMissingOperations(mr, callback);
     }
@@ -38,6 +41,14 @@ public class CausalOrderHandler {
         nra.saveUnackedOperation(vector.get(id), vm);
         nra.logOrderedOperation(vm);
     }
+
+    public void recoveryRead(byte[] b, Consumer<Object> callback){
+        read(1, b, callback);
+    }
+
+    // -----------------------------------------------------------------------------------------------------------------
+
+
 
     public List<Integer> getVector() {
         return vector;
@@ -58,9 +69,6 @@ public class CausalOrderHandler {
         read(0, b, callback);
     }
 
-    public void recoveryRead(byte[] b, Consumer<Object> callback){
-        read(1, b, callback);
-    }
 
     // type 0 -> normal, 1 -> logs
     private void read(int type, byte[] b, Consumer<Object> callback){
@@ -140,7 +148,7 @@ public class CausalOrderHandler {
     private void printArray(List<Integer> v, String header){
         StringBuilder strb = new StringBuilder();
         for(Integer i : v){
-            strb.append(Integer.toString(i)).append('/');
+            strb.append(i).append('/');
         }
         System.out.println(header + strb);
     }

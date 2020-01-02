@@ -4,14 +4,14 @@ import java.util.List;
 
 public class VectorMessage {
 
-    private int id;
-    private List<Integer> v;
+    private int id; // id do sender
+    private List<Integer> vector;
     private Object content;
     private String operation; //para a recovery
 
     public VectorMessage(int id, List<Integer> v, Object content, String operation){
         this.id = id;
-        this.v = v;
+        this.vector = v;
         this.content = content;
         this.operation = operation;
     }
@@ -29,7 +29,7 @@ public class VectorMessage {
     }
 
     public List<Integer> getVector(){
-        return this.v;
+        return this.vector;
     }
 
     public String getOperation() {
@@ -37,19 +37,19 @@ public class VectorMessage {
     }
 
     public int getIndex(int index) {
-        return v.get(index);
+        return vector.get(index);
     }
 
     @Override
     public String toString() {
         String content = this.content == null ? "null" : this.content.toString();
         StringBuilder strb = new StringBuilder();
-        for(Integer i : v){
+        for(Integer i : vector){
             strb.append(i).append('/');
         }
         return "VectorMessage{ " +
                 " serverId= " + this.id +
-                " v= " + strb.toString() +
+                " vector= " + strb.toString() +
                 " content= " + content +
                 '}';
     }

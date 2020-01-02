@@ -115,8 +115,8 @@ public class Server {
             });
         });
         // cluster
-        sms.registerOperation("publish", (a,b) ->{
-            MessageSend msg = s.decode(b);
+        sms.registerOrderedOperation("publish", (a,b) ->{
+            MessageSend msg = (MessageSend) b;
             publisher.publish(msg.getUsername(), msg.getText(), msg.getTopics());
         });
     }

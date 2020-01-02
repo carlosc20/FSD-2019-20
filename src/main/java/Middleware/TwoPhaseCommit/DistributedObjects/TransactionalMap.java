@@ -34,9 +34,7 @@ public class TransactionalMap<K,V>{
 
     public boolean containsKey(K key){
         TransactionalObject<V> to = valuesById.get(key);
-        if(to!=null && to.isCommited())
-            return true;
-        return false;
+        return to != null && to.isCommited();
     }
 
     public void start() {

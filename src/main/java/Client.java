@@ -3,6 +3,7 @@ import Logic.Publisher;
 import io.atomix.utils.net.Address;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Scanner;
 
@@ -85,14 +86,12 @@ public class Client {
                             System.out.println("erro");
                             return;
                         }
-                        for (String s : subscriptions) {
-                            System.out.println(s);
-                        }
+                        System.out.println(Arrays.toString(subscriptions.toArray()));
                     });
                     break;
                 case "get10":
                     publisher.getLast10(username).thenAccept(messages -> {
-                        System.out.println("Subscrições:");
+                        System.out.println("Últimas 10 publicações:");
                         if(messages == null) {
                             System.out.println("erro");
                             return;
@@ -107,8 +106,8 @@ public class Client {
                         System.out.println("Argumentos insuficientes");
                         break;
                     }
-                    publisher.addSubscription(username, cmds[1]).thenAccept(
-                            s -> System.out.println(cmds[1] + " subscrito")
+                    publisher.addSubscription(username, cmds[1]).thenRun(()->
+                            System.out.println(cmds[1] + " subscrito")
                     );
                     break;
                 case "removeSub":
@@ -116,8 +115,8 @@ public class Client {
                         System.out.println("Argumentos insuficientes");
                         break;
                     }
-                    publisher.removeSubscription(username, cmds[1]).thenAccept(
-                            s -> System.out.println(cmds[1] + " removido das subscrições")
+                    publisher.removeSubscription(username, cmds[1]).thenRun(() ->
+                            System.out.println(cmds[1] + " removido das subscrições")
                     );
                     break;
                 case "publish":
@@ -129,8 +128,8 @@ public class Client {
                     for (int i = 2; i < cmds.length; i++) {
                         topics.add(cmds[i]);
                     }
-                    publisher.publish(username, cmds[1], topics).thenAccept(s -> System.out.println("mensagem publicada")).thenAccept(
-                            s -> System.out.println("mensagem publicada")
+                    publisher.publish(username, cmds[1], topics).thenAccept(s -> System.out.println("mensagem publicada")).thenRun(() ->
+                            System.out.println("mensagem publicada")
                     );
                     break;
                 default:
@@ -138,5 +137,7 @@ public class Client {
             }
         }
     }
+
+
 
 }

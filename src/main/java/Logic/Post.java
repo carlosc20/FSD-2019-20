@@ -1,5 +1,6 @@
 package Logic;
 
+import java.util.Arrays;
 import java.util.List;
 
 public class Post {
@@ -30,5 +31,10 @@ public class Post {
 
     public List<String> getTopics() {
         return topics;
+    }
+
+    @Override
+    public String toString() {
+        return poster + " (" + Arrays.toString(topics.toArray()) + "): \n" + text;
     }
 }

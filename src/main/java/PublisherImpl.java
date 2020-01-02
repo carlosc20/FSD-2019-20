@@ -3,7 +3,6 @@ import Logic.Post;
 import Logic.Publisher;
 import Logic.User;
 
-import Middleware.Marshalling.MessageAuth;
 import Middleware.Recovery;
 import Middleware.TwoPhaseCommit.DistributedObjects.TransactionalMap;
 import Middleware.Logging.Logger;
@@ -11,16 +10,10 @@ import Middleware.ServerMessagingService;
 import Middleware.TwoPhaseCommit.Participant;
 import io.atomix.utils.net.Address;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Consumer;
 
 public class PublisherImpl implements Publisher {
-
-
 
     private TransactionalMap<String, User> users;
     private int lastPostId;
@@ -62,7 +55,7 @@ public class PublisherImpl implements Publisher {
     public CompletableFuture<List<Post>> getLast10(String username) {
 
         User user = users.get(username);
-        List<String> subs = user.getSubscriptions();
+        Set<String> subs = user.getSubscriptions();
         ArrayList<Post> posts = new ArrayList<>(subs.size() * n);
         for(String sub: subs) {
             posts.addAll(this.posts.get(sub).getAll());
@@ -75,7 +68,7 @@ public class PublisherImpl implements Publisher {
     @Override
     public CompletableFuture<List<String>> getSubscriptions(String username) {
         User user = users.get(username);
-        return CompletableFuture.completedFuture(user.getSubscriptions());
+        return CompletableFuture.completedFuture(new ArrayList<>(user.getSubscriptions()));
     }
 
     @Override
@@ -92,8 +85,10 @@ public class PublisherImpl implements Publisher {
 
     @Override
     public CompletableFuture<Void> addSubscription(String username, String name) {
-        User user = users.get(username);
-        user.addSubscription(name);
+        if (posts.containsKey(name)) {
+            User user = users.get(username);
+            user.addSubscription(name);
+        }
         return CompletableFuture.completedFuture(null);
     }
 

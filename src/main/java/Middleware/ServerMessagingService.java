@@ -62,9 +62,7 @@ public class ServerMessagingService {
 
     public void registerOrderedOperation(String name, BiConsumer<Address,Object> callback){
         mms.registerHandler(name, (a,b) -> {
-            coh.read(b, o->{
-                callback.accept(a,o);
-            });
+            coh.read(b, o-> callback.accept(a,o));
         },e);
     }
 
@@ -117,7 +115,7 @@ public class ServerMessagingService {
 
 
 
-    public CompletableFuture<byte[]> sendAndReceiveLoop(Address a, String type, Object content, int seconds){
+    private CompletableFuture<byte[]> sendAndReceiveLoop(Address a, String type, Object content, int seconds){
         CompletableFuture<byte[]> cf = new CompletableFuture<>();
         ScheduledFuture<?> scheduledFuture = ses.scheduleAtFixedRate(()->
                 mms.sendAndReceive(a, type, s.encode(content), e)
