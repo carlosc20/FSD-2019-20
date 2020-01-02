@@ -13,20 +13,13 @@ import java.util.concurrent.CompletableFuture;
 public class PublisherStub implements Publisher {
 
     private ClientMessagingService ms;
-    private Serializer s = new SerializerBuilder()
-            .addType(MessageAuth.class)
-            .addType(MessageSub.class)
-            .addType(MessageSend.class)
-            .addType(MessageReply.class)
-            .addType(ArrayList.class)
-            .addType(String.class)
-            .build();
+    private Serializer s = new GlobalSerializer().build();
 
-
+    // definido no método login
     private String sessionPW;
 
     public PublisherStub(Address server) {
-        final int port = 12345;
+        final int port = 12345; // porta predefinida
         ms = new ClientMessagingService(server, Address.from(port));
     }
 
@@ -55,7 +48,7 @@ public class PublisherStub implements Publisher {
             if (reply.getResponseStatusCode() == 0){
                 return CompletableFuture.completedFuture(reply.getContent());
             }
-            return CompletableFuture.completedFuture(null); // TODO exception
+            return CompletableFuture.completedFuture(null);
         });
     }
 
@@ -67,7 +60,7 @@ public class PublisherStub implements Publisher {
             if (reply.getResponseStatusCode() == 0){
                 return CompletableFuture.completedFuture(reply.getContent());
             }
-            return CompletableFuture.completedFuture(null); // TODO exception
+            return CompletableFuture.completedFuture(null);
         });
     }
 
@@ -79,7 +72,7 @@ public class PublisherStub implements Publisher {
             if (reply.getResponseStatusCode() == 0){
                 return CompletableFuture.completedFuture(null);
             }
-            return CompletableFuture.completedFuture(null); // TODO exception
+            return CompletableFuture.completedFuture(null);
         });
     }
 
@@ -91,7 +84,7 @@ public class PublisherStub implements Publisher {
             if (reply.getResponseStatusCode() == 0){
                 return CompletableFuture.completedFuture(null);
             }
-            return CompletableFuture.completedFuture(null); // TODO exception
+            return CompletableFuture.completedFuture(null);
         });
     }
 
@@ -103,7 +96,7 @@ public class PublisherStub implements Publisher {
             if (reply.getResponseStatusCode() == 0){
                 return CompletableFuture.completedFuture(null);
             }
-            return CompletableFuture.completedFuture(null); // TODO exception
+            return CompletableFuture.completedFuture(null);
         });
     }
 

@@ -4,6 +4,7 @@ import io.atomix.cluster.messaging.ManagedMessagingService;
 import io.atomix.cluster.messaging.MessagingConfig;
 import io.atomix.cluster.messaging.impl.NettyMessagingService;
 import io.atomix.utils.net.Address;
+import io.netty.channel.ConnectTimeoutException;
 
 import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
@@ -26,6 +27,6 @@ public class ClientMessagingService {
     }
 
     public CompletableFuture<byte[]> sendAndReceive(byte[] data, String type){
-        return mms.sendAndReceive(server, type, data, Duration.ofSeconds(3));
+        return mms.sendAndReceive(server, type, data, Duration.ofSeconds(5));
     }
 }

@@ -13,16 +13,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 
-//TODO usar as cenas custom
 public class GlobalSerializer {
-    SerializerBuilder sb;
+    private SerializerBuilder sb;
 
     public GlobalSerializer(){
         sb = new SerializerBuilder()
                 .addType(VectorMessage.class)
                 .addType(List.class)
                 .addType(ArrayList.class)
-                .addType(byte[].class)
                 .addType(TransactionMessage.class)
                 .addType(Address.class)
                 .addType(MessageAuth.class)
