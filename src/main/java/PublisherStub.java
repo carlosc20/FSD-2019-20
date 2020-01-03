@@ -13,15 +13,15 @@ import java.util.concurrent.CompletableFuture;
 public class PublisherStub implements Publisher {
 
     private ClientMessagingService ms;
-    private Serializer s =new GlobalSerializer().build();
-    private static final int[] servers = new int[]{10000,10001,10002};
+    private Serializer s = new GlobalSerializer().build();
 
     // definido no método login
     private String sessionPW;
 
     public PublisherStub(int port) {
+        int[] servers = Config.servers;
         int rnd = new Random().nextInt(servers.length);
-        System.out.println("Server " + rnd + " will answer your requests");
+        System.out.println("PublisherStub: Server " + servers[rnd] + " will answer the requests");
         ms = new ClientMessagingService(Address.from(servers[rnd]), Address.from(port));
     }
 
@@ -50,7 +50,7 @@ public class PublisherStub implements Publisher {
             if (reply.getResponseStatusCode() == 0){
                 return reply.getContent();
             }
-            return null;
+            return null; // erro
         });
     }
 
@@ -62,7 +62,7 @@ public class PublisherStub implements Publisher {
             if (reply.getResponseStatusCode() == 0){
                 return reply.getContent();
             }
-            return null;
+            return null; // erro
         });
     }
 
@@ -74,7 +74,7 @@ public class PublisherStub implements Publisher {
             if (reply.getResponseStatusCode() == 0){
                 return null;
             }
-            return null;
+            return null; // erro
         });
     }
 
@@ -86,7 +86,7 @@ public class PublisherStub implements Publisher {
             if (reply.getResponseStatusCode() == 0){
                 return null;
             }
-            return null;
+            return null; // erro
         });
     }
 
@@ -98,7 +98,7 @@ public class PublisherStub implements Publisher {
             if (reply.getResponseStatusCode() == 0){
                 return null;
             }
-            return null;
+            return null; // erro
         });
     }
 

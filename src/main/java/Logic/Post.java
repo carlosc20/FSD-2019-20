@@ -35,6 +35,6 @@ public class Post {
 
     @Override
     public String toString() {
-        return poster + " (" + Arrays.toString(topics.toArray()) + "): \n" + text;
+        return text + "\npublicado por " + poster + " em " + Arrays.toString(topics.toArray()) + "\n---";
     }
 }

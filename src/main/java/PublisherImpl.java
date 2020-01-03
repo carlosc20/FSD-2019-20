@@ -3,7 +3,10 @@ import Logic.Post;
 import Logic.Publisher;
 import Logic.User;
 
+import Middleware.Logging.SubscriptionLog;
+import Middleware.Logging.UnsubscriptionLog;
 import Middleware.Marshalling.MessageSend;
+import Middleware.Marshalling.MessageSub;
 import Middleware.Recovery.Recovery;
 import Middleware.TwoPhaseCommit.DistributedObjects.TransactionalMap;
 import Middleware.Logging.Logger;
@@ -20,7 +23,7 @@ public class PublisherImpl implements Publisher {
     private TransactionalMap<String, User> users;
     private int lastPostId;
     private HashMap<String, CircularArray<Post>> posts;
-    private static final int n = 10; // nr de posts devolvidos no getLast
+    private static final int N = 10; // nr de posts devolvidos no getLast
 
 
     public PublisherImpl(List<String> topics, int id, Address manager, ServerMessagingService sms, Logger log, Consumer<Integer> serverStart) {
@@ -29,12 +32,23 @@ public class PublisherImpl implements Publisher {
         this.users = new TransactionalMap<>(p);
         this.posts = new HashMap<>();
         for(String topic: topics) {
-            posts.put(topic, new CircularArray<>(n));
+            posts.put(topic, new CircularArray<>(N));
         }
         new Recovery(log,sms).start((obj) -> {
-            //TODO colocar as que faltam
-            MessageSend msg = (MessageSend) obj;
-            publish(msg.getUsername(), msg.getText(), msg.getTopics());
+            if (obj instanceof MessageSend) {
+                MessageSend msg = (MessageSend) obj;
+                publish(msg.getUsername(), msg.getText(), msg.getTopics());
+            } else
+            if (obj instanceof SubscriptionLog) {
+                SubscriptionLog sub = (SubscriptionLog) obj;
+                MessageSub msg = sub.getMs();
+                addSubscription(msg.getUsername(),msg.getName());
+            } else
+            if (obj instanceof UnsubscriptionLog) {
+                UnsubscriptionLog unsub = (UnsubscriptionLog) obj;
+                MessageSub msg = unsub.getMs();
+                removeSubscription(msg.getUsername(),msg.getName());
+            }
         }, users, serverStart);
         users.start();
     }
@@ -60,12 +74,19 @@ public class PublisherImpl implements Publisher {
 
         User user = users.get(username);
         Set<String> subs = user.getSubscriptions();
-        ArrayList<Post> posts = new ArrayList<>(subs.size() * n);
+        TreeSet<Post> posts = new TreeSet<>(Comparator.comparing(Post::getId));
         for(String sub: subs) {
             posts.addAll(this.posts.get(sub).getAll());
         }
-        posts.sort(Comparator.comparing(Post::getId));
-        return CompletableFuture.completedFuture(posts.subList(posts.size() - n, posts.size()));
+
+        List<Post> r = new ArrayList<>(N);
+        Iterator<Post> itr = posts.iterator();
+        int i = 0;
+        while (itr.hasNext() && i < N) {
+            r.add(itr.next());
+            i++;
+        }
+        return CompletableFuture.completedFuture(r);
 
     }
 

@@ -11,39 +11,32 @@ import Middleware.ServerMessagingService;
 import io.atomix.utils.net.Address;
 import io.atomix.utils.serializer.Serializer;
 
-import java.io.BufferedWriter;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Scanner;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 public class Server {
 
-    int requests= 100; //testes
-    long startTime;
-    BufferedWriter writer = new BufferedWriter(new FileWriter("timesCausalOrder.txt", true));
-
-    ServerMessagingService sms;
+    private int id;
+    private ServerMessagingService sms;
     private Publisher publisher;
-    private Serializer s;
     private Logger log;
-    private static final ArrayList<String> topics = new ArrayList<>(Arrays.asList("Animais","Plantas","Carros"));
+    private Serializer s = new GlobalSerializer().build();
 
-    public Server(int id, Address address, List<Address> servers, Address manager) throws IOException {
-         this.s = new GlobalSerializer()
-                        .build();
+    private static final ArrayList<String> TOPICS =
+            new ArrayList<>(Arrays.asList("Animais","Plantas","Carros"));
+
+    public Server(int id, Address address, List<Address> servers, Address manager){
+        this.id = id;
          this.log = new Logger("logs", "Server" + id, s);
          this.sms = new ServerMessagingService(id, address, servers, log, s);
-         this.publisher = new PublisherImpl(topics, id, manager, sms, log, (x) -> start());
+         this.publisher = new PublisherImpl(TOPICS, id, manager, sms, log, (x) -> start());
     }
 
-    public void start(){
+    private void start(){
         startListeningToLogins();
         startListeningToRegisters();
         startListeningToPublishes();
@@ -59,7 +52,7 @@ public class Server {
         // client
         sms.registerCompletableOperation("clientRegister", (a,b)->{
             MessageAuth msg = s.decode(b);
-            System.out.println("Register request arrived");
+            System.out.println(id + ": Register request arrived");
             return publisher.register(msg.getUsername(), msg.getPassword())
                     .thenApply(s::encode);
         });
@@ -112,7 +105,7 @@ public class Server {
         // client
         sms.registerCompletableOperation("clientPublish", (a,b)->{
             MessageSend msg = s.decode(b);
-            System.out.println("Publish request arrived");
+            System.out.println(id + ": Publish request arrived");
             return publisher.login(msg.getUsername(), msg.getPassword()).thenCompose(auth -> {
                 if(auth) {
                     return publisher.publish(msg.getUsername(), msg.getText(), msg.getTopics()).thenApply(v -> {
@@ -127,21 +120,6 @@ public class Server {
         sms.registerOrderedOperation("publish", (a,b) ->{
             MessageSend msg = (MessageSend) b;
             publisher.publish(msg.getUsername(), msg.getText(), msg.getTopics());
-
-            /* para testes
-            requests--;
-            if(requests == 0){
-                long stopTime = System.currentTimeMillis();
-                long elapsedTime = stopTime - startTime;
-                try {
-                    writer.append("150 total requests -> time in exec was " + (int) elapsedTime + "\n");
-                    System.out.println("Finished!");
-                    writer.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-            */
         });
     }
 
@@ -193,30 +171,7 @@ public class Server {
 
 
 
-    //Testes ..............................................................................................
-
-    /*
-        public void putUser(String name, User u){
-            users.put(name, u);
-        }
-
-        public void localPutUser(String name, User u){
-            users.localPut(name, u);
-        }
-    */
-
-    private void startListeningToLogins2(){
-        sms.registerCompletableOperation("clientLogin", (a,b)->{
-            MessageAuth msg = s.decode(b);
-            return publisher.login(msg.getUsername(), msg.getPassword()).thenApply(success -> {
-                if(success) {
-                    return s.encode(true);
-                }
-                else
-                    return s.encode(false);
-            });
-        });
-    }
+    //Testes ...........................................................................................................
 
     public static void main(String[] args) throws IOException {
         ArrayList<Address> addresses = new ArrayList<>();
@@ -225,13 +180,13 @@ public class Server {
             addresses.add(Address.from("localhost",10000 + i));
         }
         int id = Integer.parseInt(new Scanner(System.in).nextLine());
-        Server s = new Server(id, addresses.get(id), addresses, manager);
+        new Server(id, addresses.get(id), addresses, manager);
         /*
         ScheduledExecutorService ses = Executors.newScheduledThreadPool(1);
         int batchSize = 20;
-        List<String> topics = new ArrayList<>();
-        topics.add("Animais");
-        MessageSend msg = new MessageSend("marco", "merda", topics, "noice");
+        List<String> TOPICS = new ArrayList<>();
+        TOPICS.add("Animais");
+        MessageSend msg = new MessageSend("marco", "merda", TOPICS, "noice");
         s.startTime = System.currentTimeMillis();
         if(id != 0) {
             for (int j = 0; j < batchSize; j++)

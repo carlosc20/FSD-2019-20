@@ -39,7 +39,7 @@ public class Client {
                         continue;
                     }
                     try {
-                        boolean login = publisher.login(cmds[1],cmds[2]).get();
+                        boolean login = publisher.login(cmds[1],cmds[2]).get(); // espera pelo resultado
                         if(login) {
                             System.out.println("Login efetuado com sucesso");
                             session(scanner, publisher, cmds[1]);
@@ -68,7 +68,6 @@ public class Client {
 
     private static void session(Scanner scanner, Publisher publisher, String username) {
 
-        System.out.println("sessão iniciada");
         while (true) {
             String input = scanner.nextLine();
             if (input == null || input.equals("sair")) {
@@ -83,7 +82,7 @@ public class Client {
                     System.out.println("get10");
                     System.out.println("addSub <sub>");
                     System.out.println("removeSub <sub>");
-                    System.out.println("publish <text> <tag1> <tag2>...");
+                    System.out.println("publish <tag1> <tag2>...");
                     break;
                 case "getsubs":
                     publisher.getSubscriptions(username).thenAccept(subscriptions -> {
@@ -126,15 +125,17 @@ public class Client {
                     );
                     break;
                 case "publish":
-                    if (cmds.length < 3) {
+                    if (cmds.length < 2) {
                         System.out.println("Argumentos insuficientes");
                         break;
                     }
                     List<String> topics = new ArrayList<>();
-                    for (int i = 2; i < cmds.length; i++) {
+                    for (int i = 1; i < cmds.length; i++) {
                         topics.add(cmds[i]);
                     }
-                    publisher.publish(username, cmds[1], topics).thenAccept(s -> System.out.println("mensagem publicada")).thenRun(() ->
+                    System.out.println("Insira a mensagem a publicar em "+ Arrays.toString(topics.toArray()));
+                    input = scanner.nextLine();
+                    publisher.publish(username, input, topics).thenRun(() ->
                             System.out.println("mensagem publicada")
                     );
                     break;

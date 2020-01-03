@@ -1,24 +1,18 @@
 package Middleware.TwoPhaseCommit;
 
-import Logic.User;
 import Middleware.GlobalSerializer;
 import Middleware.Logging.Logger;
-import Middleware.Marshalling.MessageAuth;
 import Middleware.ServerMessagingService;
 import Middleware.TwoPhaseCommit.DistributedObjects.MapMessage;
 import io.atomix.utils.net.Address;
 import io.atomix.utils.serializer.Serializer;
 
-import java.io.BufferedWriter;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.*;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
 public class Manager {
@@ -38,9 +32,10 @@ public class Manager {
         this.sms = new ServerMessagingService(id, address, participants, log, s);
         this.staticParticipants = participants;
         recover();
+        start();
     }
 
-    public void start() {
+    private void start() {
         sms.registerCompletableOperation("startTransaction", (a, b) -> {
             TransactionMessage tm = s.decode(b);
             beginTransaction(tm);
