@@ -113,20 +113,22 @@ public class Server {
         sms.registerCompletableOperation("clientPublish", (a,b)->{
             MessageSend msg = s.decode(b);
             System.out.println("Publish request arrived");
-            //return publisher.login(msg.getUsername(), msg.getPassword()).thenCompose(auth -> {
-                //if(auth) {
+            return publisher.login(msg.getUsername(), msg.getPassword()).thenCompose(auth -> {
+                if(auth) {
                     return publisher.publish(msg.getUsername(), msg.getText(), msg.getTopics()).thenApply(v -> {
                         sms.sendCausalOrderAsyncToCluster("publish", msg);
                         return s.encode(MessageReply.OK);
                     });
-                //}
-               // return CompletableFuture.completedFuture(s.encode(MessageReply.ERROR(1)));
-           // });
+                }
+               return CompletableFuture.completedFuture(s.encode(MessageReply.ERROR(1)));
+            });
         });
         // cluster
         sms.registerOrderedOperation("publish", (a,b) ->{
             MessageSend msg = (MessageSend) b;
             publisher.publish(msg.getUsername(), msg.getText(), msg.getTopics());
+
+            /* para testes
             requests--;
             if(requests == 0){
                 long stopTime = System.currentTimeMillis();
@@ -139,6 +141,7 @@ public class Server {
                     e.printStackTrace();
                 }
             }
+            */
         });
     }
 
@@ -223,6 +226,7 @@ public class Server {
         }
         int id = Integer.parseInt(new Scanner(System.in).nextLine());
         Server s = new Server(id, addresses.get(id), addresses, manager);
+        /*
         ScheduledExecutorService ses = Executors.newScheduledThreadPool(1);
         int batchSize = 20;
         List<String> topics = new ArrayList<>();
@@ -232,6 +236,6 @@ public class Server {
         if(id != 0) {
             for (int j = 0; j < batchSize; j++)
                 ses.schedule(() -> s.sms.sendAsync(addresses.get(id), "clientPublish", msg), 6000, TimeUnit.MILLISECONDS);
-        }
+        }*/
     }
 }
