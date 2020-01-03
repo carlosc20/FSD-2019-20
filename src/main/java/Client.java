@@ -6,6 +6,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Scanner;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 public class Client {
 
@@ -36,13 +38,16 @@ public class Client {
                         System.out.println("Argumentos insuficientes");
                         continue;
                     }
-                    publisher.login(cmds[1],cmds[2]).thenAccept(success ->  {
-                        if(success) {
+                    try {
+                        boolean login = publisher.login(cmds[1],cmds[2]).get();
+                        if(login) {
                             System.out.println("Login efetuado com sucesso");
                             session(scanner, publisher, cmds[1]);
                         }
                         else System.out.println("Login falhou");
-                    });
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
                     break;
                 case "register":
                     if(cmds.length < 3) {
@@ -63,6 +68,7 @@ public class Client {
 
     private static void session(Scanner scanner, Publisher publisher, String username) {
 
+        System.out.println("sessão iniciada");
         while (true) {
             String input = scanner.nextLine();
             if (input == null || input.equals("sair")) {
