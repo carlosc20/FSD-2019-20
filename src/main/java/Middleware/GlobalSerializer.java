@@ -26,6 +26,7 @@ public class GlobalSerializer {
                 .addType(VectorMessage.class)
                 .addType(List.class)
                 .addType(ArrayList.class)
+                .addType(Identifier.class)
                 .addType(TransactionMessage.class)
                 .addType(Address.class)
                 .addType(MessageAuth.class)
@@ -36,7 +37,6 @@ public class GlobalSerializer {
                 .addType(MapMessage.class)
                 .addType(SubscriptionLog.class)
                 .addType(UnsubscriptionLog.class)
-                .addType(Identifier.class)
                 .addType(Post.class)
                 .addType(User.class);
     }
