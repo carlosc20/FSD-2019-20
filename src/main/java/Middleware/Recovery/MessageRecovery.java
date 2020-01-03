@@ -1,9 +1,9 @@
 package Middleware.Recovery;
 
 public class MessageRecovery {
-    int id; //SENDER id
-    //total is equal to the number of messages server did not receive.
-    int total;
+
+    private int id; //SENDER id
+    private int total;  //total is equal to the number of messages server did not receive.
 
     public MessageRecovery(int id, int total){
         this.id = id;

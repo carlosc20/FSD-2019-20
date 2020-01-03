@@ -30,7 +30,7 @@ public class Server {
             new ArrayList<>(Arrays.asList("Animais","Plantas","Carros"));
 
     public Server(int id, Address address, List<Address> servers, Address manager){
-        this.id = id;
+         this.id = id;
          this.log = new Logger("logs", "Server" + id, s);
          this.sms = new ServerMessagingService(id, address, servers, log, s);
          this.publisher = new PublisherImpl(TOPICS, id, manager, sms, log, (x) -> start());
@@ -51,8 +51,8 @@ public class Server {
     private void startListeningToRegisters(){
         // client
         sms.registerCompletableOperation("clientRegister", (a,b)->{
+            System.out.println(id + ": register request arrived");
             MessageAuth msg = s.decode(b);
-            System.out.println(id + ": Register request arrived");
             return publisher.register(msg.getUsername(), msg.getPassword())
                     .thenApply(s::encode);
         });
@@ -64,6 +64,7 @@ public class Server {
     private void startListeningToLogins(){
         // client
         sms.registerCompletableOperation("clientLogin", (a,b)->{
+            System.out.println(id + ": login request arrived");
             MessageAuth msg = s.decode(b);
             return publisher.login(msg.getUsername(), msg.getPassword()).thenApply(s::encode);
         });
@@ -75,6 +76,7 @@ public class Server {
     private void startListeningToGets(){
         // client
         sms.registerCompletableOperation("clientGetSubs", (a,b)->{
+            System.out.println(id + ": getsubs request arrived");
             MessageAuth msg = s.decode(b);
             return publisher.login(msg.getUsername(), msg.getPassword()).thenCompose(auth -> {
                 if(auth)
@@ -85,6 +87,7 @@ public class Server {
             });
         });
         sms.registerCompletableOperation("clientGetPosts", (a,b)->{
+            System.out.println(id + ": getposts request arrived");
             MessageAuth msg = s.decode(b);
             return publisher.login(msg.getUsername(), msg.getPassword()).thenCompose(auth -> {
                 if(auth)
@@ -104,8 +107,8 @@ public class Server {
     private void startListeningToPublishes(){
         // client
         sms.registerCompletableOperation("clientPublish", (a,b)->{
+            System.out.println(id + ": publish request arrived");
             MessageSend msg = s.decode(b);
-            System.out.println(id + ": Publish request arrived");
             return publisher.login(msg.getUsername(), msg.getPassword()).thenCompose(auth -> {
                 if(auth) {
                     return publisher.publish(msg.getUsername(), msg.getText(), msg.getTopics()).thenApply(v -> {
@@ -129,6 +132,7 @@ public class Server {
     private void startListeningToSubOperations(){
         // client
         sms.registerCompletableOperation("clientAddSub", (a,b)->{
+            System.out.println(id + ": addSub request arrived");
             MessageSub msg = s.decode(b);
             return publisher.login(msg.getUsername(), msg.getPassword()).thenCompose(auth -> {
                 if(auth) {
@@ -142,6 +146,7 @@ public class Server {
             });
         });
         sms.registerCompletableOperation("clientRemoveSub", (a,b)->{
+            System.out.println(id + ": removeSub request arrived");
             MessageSub msg = s.decode(b);
             return publisher.login(msg.getUsername(), msg.getPassword()).thenCompose(auth -> {
                 if(auth) {
@@ -173,23 +178,13 @@ public class Server {
 
     //Testes ...........................................................................................................
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) {
+        Address manager = Address.from(20000);
         ArrayList<Address> addresses = new ArrayList<>();
-        Address manager = Address.from("localhost", 20000);
-        for(int i = 0; i<3; i++){
-            addresses.add(Address.from("localhost",10000 + i));
-        }
+        int[] servers = Config.servers;
+        for (int s : servers) addresses.add(Address.from(s));
+        System.out.println("id:");
         int id = Integer.parseInt(new Scanner(System.in).nextLine());
         new Server(id, addresses.get(id), addresses, manager);
-        /*
-        ScheduledExecutorService ses = Executors.newScheduledThreadPool(1);
-        int batchSize = 20;
-        List<String> TOPICS = new ArrayList<>();
-        TOPICS.add("Animais");
-        MessageSend msg = new MessageSend("marco", "merda", TOPICS, "noice");
-        s.startTime = System.currentTimeMillis();
-            //for (int j = 0; j < batchSize; j++)
-                //ses.schedule(() -> s.sms.sendAsync(addresses.get(id), "clientPublish", msg), 10000 + j * 300, TimeUnit.MILLISECONDS);
-    */
     }
 }

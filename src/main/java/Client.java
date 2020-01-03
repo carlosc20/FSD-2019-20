@@ -71,7 +71,7 @@ public class Client {
         while (true) {
             String input = scanner.nextLine();
             if (input == null || input.equals("sair")) {
-                System.out.println("Adeus");
+                System.out.println("Sessão terminada");
                 break;
             }
             String[] cmds = input.split(" ");

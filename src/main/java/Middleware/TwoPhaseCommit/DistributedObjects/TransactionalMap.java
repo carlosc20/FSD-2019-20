@@ -38,7 +38,7 @@ public class TransactionalMap<K,V>{
     }
 
     public void start() {
-        System.out.println("dtm:regput -> starting");
+        System.out.println("TMap.start -> starting");
         participant.startFirstPhase(firstPhaseAnswer);
         participant.startSecondPhase(isCommited, commit, abort);
     }
@@ -77,7 +77,7 @@ public class TransactionalMap<K,V>{
             valuesById.remove(mm.key);
     };
 
-    public void transactionalRecover(Object obj){
-        participant.recovery(firstPhaseAnswer, commit, abort, (TransactionMessage)obj);
+    public void transactionalRecover(TransactionMessage msg){
+        participant.recovery(firstPhaseAnswer, commit, abort, msg);
     }
 }

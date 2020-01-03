@@ -19,7 +19,6 @@ public class Manager {
     private int id;
     private int numTransactions;
     private Map<Integer, Integer> transactions;
-    private List<Address> staticParticipants;
     private Serializer s;
     private Logger log;
     private ServerMessagingService sms;
@@ -31,7 +30,6 @@ public class Manager {
         this.s = new GlobalSerializer().build();
         this.log = new Logger("logs", "Manager", s);
         this.sms = new ServerMessagingService(id, address, participants, log, s);
-        this.staticParticipants = participants;
         recover();
         start();
     }
@@ -49,7 +47,7 @@ public class Manager {
 
     private void beginTransaction(TransactionMessage tm){
         numTransactions++;
-        System.out.println("manager -> transaction request id " + numTransactions);
+        System.out.println("Manager.beginTranscation -> transaction request id " + numTransactions);
         transactions.put(numTransactions, 1);
         Identifier id = new Identifier(this.id, numTransactions);
         tm.setTransactionId(id);
@@ -101,7 +99,7 @@ public class Manager {
         int tid = tm.getTransactionId().getId();
             if (tm.isAborted()) {
                 transactions.put(tid, 2);
-                System.out.println("manager:firstphasereg -> aborting tid == " + tm.getTransactionId() + " from ");
+                System.out.println("Manager.firstPhase -> aborting tid == " + tm.getTransactionId() + " from ");
             }
     };
 
@@ -117,14 +115,16 @@ public class Manager {
                 transactions.put(tm.getTransactionId().getId(), 1);
                 startFullProtocol(tm);
             }
-            else if(tm.isFinished()) continue;
-            else{
+            else if(!tm.isFinished()) {
                 startHalfProtocol(tm);
             }
         }
     }
 
-    public static void main(String[] args) throws IOException {
+
+    //Testes ...........................................................................................................
+
+    public static void main(String[] args) {
         ArrayList<Address> addresses = new ArrayList<>();
         Address manager = Address.from("localhost", 20000);
         for(int i = 0; i<3; i++){

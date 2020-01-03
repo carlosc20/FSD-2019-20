@@ -33,7 +33,6 @@ public class ServerMessagingService {
 
     public ServerMessagingService(int id, Address address, List<Address> participants, Logger log, Serializer s){
         this.id = id;
-        //TODO passar executor para fora?
         this.ses = Executors.newScheduledThreadPool(8);
         this.e = Executors.newFixedThreadPool(1);
         this.mms = new NettyMessagingService(
@@ -108,17 +107,6 @@ public class ServerMessagingService {
         return CompletableFuture.allOf(requests.toArray(new CompletableFuture[0]));
     }
 
-    //protótipo
-    public CompletableFuture<List<byte[]>> sendAndReceiveToClusterJoined(String type, Object content, int seconds){
-        //System.out.println("sms:sendAndReceiveLoopToCluster -> type == " + type + content.toString());
-        List<CompletableFuture<byte[]>> requests = new ArrayList<>();
-        for (Address a : participants)
-            requests.add(sendAndReceiveLoop(a, type, content, seconds));
-        return CompletableFuture.allOf(requests.toArray(new CompletableFuture[0]))
-                .thenApply(v -> requests.stream()
-                        .map(CompletableFuture::join)
-                        .collect(Collectors.toList()));
-    }
 
     public CompletableFuture<byte[]> sendAndReceiveLoop(Address a, String type, Object content, int seconds){
         CompletableFuture<byte[]> cf = new CompletableFuture<>();
@@ -142,29 +130,12 @@ public class ServerMessagingService {
     }
 
 
-    //TODO pq não void?
-    public CompletableFuture<Void> sendAsyncToCluster(String type, Object content) {
-        //System.out.println("sms:sendAsyncToCluster -> type == " + type);
-        for (Address a : participants){
-            mms.sendAsync(a, type, s.encode(content));
-        }
-        return CompletableFuture.completedFuture(null);
-    }
-
-    public <T> CompletableFuture<T> sendAndReceive(Address a, String type, Object content){
-        return mms.sendAndReceive(a, type, s.encode(content),e)
-                    .thenApply(b -> s.decode(b));
-    }
 
     public CompletableFuture<byte[]> sendAndReceive(Address a, String type, Object content, Duration d, ExecutorService e){
         System.out.println(content.toString());
         return mms.sendAndReceive(a, type, s.encode(content), d, e);
     }
 
-
-    public <T> CompletableFuture<Void> sendAsync(Address a, String type, T content){
-        return mms.sendAsync(a,type,s.encode(content));
-    }
 
     public CompletableFuture<Void> sendCausalOrderAsyncToCluster(String type, Object content) {
         //System.out.println("sms:sendCausalOrderAsyncToCluster ->");

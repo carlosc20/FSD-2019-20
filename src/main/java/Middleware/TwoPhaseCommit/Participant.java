@@ -47,7 +47,7 @@ public class Participant {
     public <T> CompletableFuture<Boolean> sendTransaction(T toSend){
         this.requestNumber++;
         TransactionMessage<T> tm = new TransactionMessage<>(requestNumber, toSend);
-        System.out.println("dtm:sendTransaction -> starting transaction");
+        System.out.println("Participant.sendTransaction -> starting transaction");
         System.out.println(tm.toString());
         return sendAndReceiveToManager(tm, requestNumber);
     }
@@ -55,16 +55,18 @@ public class Participant {
     private CompletableFuture<Boolean> sendAndReceiveToManager(TransactionMessage content, int requestNumber){
         CompletableFuture<Boolean> cf = new CompletableFuture<>();
         ScheduledFuture<?> scheduledFuture = ses.scheduleAtFixedRate(() ->
-                checkCompletion(cf, requestNumber), 9000, 4000, TimeUnit.MILLISECONDS);
-        sms.sendAndReceive(manager, "startTransaction", content, Duration.ofSeconds(8), ses)
+                checkCompletion(cf, requestNumber), 6500, 4000, TimeUnit.MILLISECONDS);
+        sms.sendAndReceive(manager, "startTransaction", content, Duration.ofSeconds(6), ses)
                 .whenComplete((m,t) -> {
                     if(t!=null){
                         if(t instanceof ConnectTimeoutException){
-                            System.out.println("Service Unavailable");
+                            System.out.println("Participant.sendAndReceiveToManager -> Service Unavailable");
+                            t.printStackTrace();
                             cf.complete(false);
                         }
                         else{
-                            System.out.println("Request Timeout");
+                            System.out.println("Participant.sendAndReceiveToManager -> Request Timeout");
+                            t.printStackTrace();
                             //aqui o scheduledFuture vai entrar em ação
                         }
                     }
@@ -89,11 +91,11 @@ public class Participant {
         //obtém resposta prepared/abort
         boolean state = firstPhaseAnswer.apply(tm.getContent(),tid);
         if(state) {
-            System.out.println("p:parseFirstphaseTM -> prepared to transaction id == " + tm.getTransactionId());
+            System.out.println("Participant.parseFirstphaseTM -> prepared to transaction id == " + tm.getTransactionId());
             tm.setPrepared();
         }
         else{
-            System.out.println("p:parseFirstphaseTM -> aborting transaction id == " + tm.getTransactionId());
+            System.out.println("Participant.parseFirstphaseTM -> aborting transaction id == " + tm.getTransactionId());
             tm.setAborted();
         }
         log.write(tm);
@@ -105,14 +107,14 @@ public class Participant {
         //só entra se não está commited ou se ocorreu um abort
         //isto bate tbm no caso do username repetido, pq o primeiro que chegue vai estar commited, mas não importa
         if(!isCommited.apply(tm.getContent())){
-            System.out.println("p:parseSecondPhaseTM -> transaction not yet commited");
+            System.out.println("Participant.parseSecondPhaseTM -> transaction not yet commited");
             if(tm.isCommited()) {
-                System.out.println("p:parseSecondPhaseTM -> commiting transaction id == " + tm.getTransactionId());
+                System.out.println("Participant.parseSecondPhaseTM -> commiting transaction id == " + tm.getTransactionId());
                 commit.accept(tm.getContent());
                 requestsAnswer.put(tm.getRequestId(), true);
             }
             else{
-                System.out.println("p:parseSecondPhaseTM -> aborting transaction id == " + tm.getTransactionId());
+                System.out.println("Participant.parseSecondPhaseTM -> aborting transaction id == " + tm.getTransactionId());
                 abort.accept(tm.getContent(), tid);
                 requestsAnswer.put(tm.getRequestId(), false);
             }

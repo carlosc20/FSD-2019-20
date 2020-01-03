@@ -26,7 +26,10 @@ public class ClientMessagingService {
 
     public CompletableFuture<byte[]> sendAndReceive(byte[] data, String type){
         return mms.sendAndReceive(server, type, data, Duration.ofSeconds(TIMEOUT_S)).whenComplete((m,t) -> {
-                    if(t!=null) System.out.println("CMS: Server is unavailable");
+                    if(t!=null) {
+                        System.out.println("CMS: Server is unavailable");
+                        t.printStackTrace();
+                    }
                 });
     }
 }

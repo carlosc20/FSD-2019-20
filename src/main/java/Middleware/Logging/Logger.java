@@ -35,17 +35,4 @@ public class Logger {
         }
         r.close();
     }
-
-    public Object recoverLast() {
-        Object o = null;
-        int last = sj.maxEntrySize()-1;
-        r = sj.openReader(last);
-        while (r.hasNext()) {
-            Indexed<Object> e = r.next();
-            o = e.entry();
-            System.out.println("Retrived from loggs " + e.index()+": "+e.entry());
-        }
-        r.close();
-        return o;
-    }
 }

@@ -2,7 +2,6 @@ package Middleware.CausalOrder;
 
 import Middleware.Logging.Logger;
 import Middleware.Recovery.MessageRecovery;
-import io.atomix.utils.serializer.Serializer;
 
 import java.util.*;
 
@@ -11,14 +10,13 @@ public class NeighboursRecoveryAssistant {
     //que este servidor enviou, Integer(meu clock)
     //guardar o que os outros servidores registam como o meu clock
     private int id;
-    private Serializer s;
+
     private List<Integer> myClockOnCluster;
     private LinkedHashMap<Integer, VectorMessage> nonAcknowledgedOperations;
     private Logger log;
 
-    public NeighboursRecoveryAssistant(int id, Serializer s, List<Integer> vector, Logger log) {
+    public NeighboursRecoveryAssistant(int id, List<Integer> vector, Logger log) {
         this.id = id;
-        this.s = s;
         this.myClockOnCluster = new ArrayList<>();
         myClockOnCluster.addAll(vector);
         this.nonAcknowledgedOperations = new LinkedHashMap<>();
@@ -29,11 +27,11 @@ public class NeighboursRecoveryAssistant {
         nonAcknowledgedOperations.put(vm.getIndex(this.id), vm);
     }
 
-    public void updateClocks(VectorMessage vm, int myClock){
+    public void updateClocks(VectorMessage vm){
         int senderId = vm.getId();
         int clockValue = vm.getIndex(id);
         myClockOnCluster.set(senderId, clockValue);
-        printArray(myClockOnCluster, "cohr:updateClocks -> Updated clocks value: ");
+        printArray(myClockOnCluster, "cohr.updateClocks -> Updated clocks value: ");
         int count=0;
         for(int i = 0; i<myClockOnCluster.size(); i++){
             if(i!=id){
@@ -44,22 +42,17 @@ public class NeighboursRecoveryAssistant {
         }
         if(count==this.myClockOnCluster.size()-1){
             System.out.println("CLOCKVALUE " + clockValue);
-            System.out.println("cohr:updateClocks -> acknowledging");
-            Iterator<VectorMessage> iter = nonAcknowledgedOperations.values().iterator();
-            while (iter.hasNext()) {
-                VectorMessage msg = iter.next();
-                if(msg.getIndex(this.id) <= clockValue)
-                    iter.remove();
-            }
+            System.out.println("cohr.updateClocks -> acknowledging");
+            nonAcknowledgedOperations.values().removeIf(msg -> msg.getIndex(this.id) <= clockValue);
         }
     }
 
     public MessageRecovery getMissingOperationMessage(){
-        System.out.println("nonAck size = " + nonAcknowledgedOperations.size());
+        System.out.println("cohr.getMissingOperationMessage -> nonAck size = " + nonAcknowledgedOperations.size());
         int size = nonAcknowledgedOperations.size();
         if(size == 0) return new MessageRecovery(this.id, 0);
         int total = nonAcknowledgedOperations.get(size).getIndex(this.id);
-        printMap("cohr:getMissingOperationMessage -> unAcked operations ");
+        printMap("cohr.getMissingOperationMessage -> unAcked operations ");
         return new MessageRecovery(this.id, total);
     }
 
@@ -76,7 +69,7 @@ public class NeighboursRecoveryAssistant {
     private void printArray(List<Integer> v, String header){
         StringBuilder strb = new StringBuilder();
         for(Integer i : v){
-            strb.append(Integer.toString(i)).append('/');
+            strb.append(i).append('/');
         }
         System.out.println(header + strb);
     }
