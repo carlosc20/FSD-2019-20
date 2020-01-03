@@ -168,27 +168,27 @@ public class ServerMessagingService {
 
     public CompletableFuture<Void> sendCausalOrderAsyncToCluster(String type, Object content) {
         //System.out.println("sms:sendCausalOrderAsyncToCluster ->");
-        byte[] toSend = coh.createMsg(content, type);
+        byte[] toSend = coh.createMsg(content);
         for (Address a : participants){
             mms.sendAsync(a, type, toSend);
         }
         return CompletableFuture.completedFuture(null);
     }
 
-    public byte[] getMissingOperationMessage(List<Integer> vector){
-        return s.encode(coh.getMissingOperationMessage(vector));
+    public byte[] getMissingOperationMessage(){
+        return s.encode(coh.getMissingOperationMessage());
     }
 
     public byte[] getVectorMessage(int messageid){
         return s.encode(coh.getVectorMessage(messageid));
     }
 
-    public void resendMessagesRead(byte[] b, Consumer<Object> callback){
-        coh.resendMessagesRead(b,callback);
-    }
-
     public void causalOrderRecover(Object msg, Consumer<Object> callback){
         coh.recoveryRead(s.encode(msg), callback);
+    }
+
+    public void resendMessagesRecover(Object msg, Consumer<Object> callback){
+        coh.resendMessagesRead(s.encode(msg), callback);
     }
 
     public List<Integer> getVector(){

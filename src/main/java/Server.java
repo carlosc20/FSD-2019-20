@@ -188,9 +188,8 @@ public class Server {
         TOPICS.add("Animais");
         MessageSend msg = new MessageSend("marco", "merda", TOPICS, "noice");
         s.startTime = System.currentTimeMillis();
-        if(id != 0) {
-            for (int j = 0; j < batchSize; j++)
-                ses.schedule(() -> s.sms.sendAsync(addresses.get(id), "clientPublish", msg), 6000, TimeUnit.MILLISECONDS);
-        }*/
+            //for (int j = 0; j < batchSize; j++)
+                //ses.schedule(() -> s.sms.sendAsync(addresses.get(id), "clientPublish", msg), 10000 + j * 300, TimeUnit.MILLISECONDS);
+    */
     }
 }

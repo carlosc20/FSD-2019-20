@@ -33,12 +33,11 @@ public class Recovery {
                 callback.accept(msg);
         });
         listenToRecoveries();
-        serverStart.accept(0);
         List<Integer> vector = sms.getVector();
         System.out.println("recovery:start -> Handlers registered");
         //envia o seu vetor, pq no servidor pode ter que ainda não recebeu a msg 10, mas ele pode ter recebido
         //e não ter enviado mais aseguir o que leva a que não haja ack.
-        sms.sendAndReceiveToClusterRecovery("startCausalOrderRecovery", vector, 6, (a,b) -> {
+        sms.sendAndReceiveToClusterRecovery("startCausalOrderRecovery", 0, 6, (a,b) -> {
             MessageRecovery mr = (MessageRecovery) b;
             //isto tudo pq um servidor pode ir abaixo a meio
             int savepoint = vector.get(mr.getId());
@@ -47,33 +46,43 @@ public class Recovery {
                 int lastId = savepoint + mr.getTotal();
                 System.out.println("Savepoint= " + savepoint);
                 System.out.println("There are missing messages lastId= " + lastId);
-                recoveries.put(a, new RecoveredCausalOrderedMessages(total));
-                for(int i = savepoint; i < lastId; i++) {
+                recoveries.put(a, new RecoveredCausalOrderedMessages(total-savepoint));
+                for(int i = savepoint + 1; i <= lastId; i++) {
                     sms.sendAndReceiveLoop(a, "causalOrderRecovery", i, 6)
                         .thenAccept(msg -> {
-                            System.out.println("Received recovered msg!! " + sms.decode(msg).toString());
                             boolean state = recoveries.get(a).add(sms.decode(msg));
                             if (state) {
                                 System.out.println("Got all recovery messages");
                                 for (VectorMessage vm : recoveries.get(a).getRecoveredMessages())
-                                    sms.causalOrderRecover(vm, callback);
+                                    sms.resendMessagesRecover(vm, callback);
+                                serverStart.accept(0);
                             }
                         });
                 }
+            }
+            else{
+                serverStart.accept(0);
             }
         });
         System.out.println("recovery:start -> causalOrderRecovery message sent");
     }
 
+    private void printArray(List<Integer> v, String header){
+        StringBuilder strb = new StringBuilder();
+        for(Integer i : v){
+            strb.append(i).append('/');
+        }
+        System.out.println(header + strb);
+    }
 
     private void listenToRecoveries(){
         sms.registerOperation("startCausalOrderRecovery", (a,b) -> {
-            List<Integer> vector = sms.decode(b);
-            return sms.getMissingOperationMessage(vector);
+            return sms.getMissingOperationMessage();
         });
 
         sms.registerOperation("causalOrderRecovery", (a,b)->{
             int messageId = sms.decode(b);
+            System.out.println("Request for recovery msg : id =" + messageId);
             return sms.getVectorMessage(messageId);
         });
     }

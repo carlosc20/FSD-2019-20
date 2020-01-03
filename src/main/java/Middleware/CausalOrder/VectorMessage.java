@@ -1,7 +1,7 @@
 package Middleware.CausalOrder;
 
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 public class VectorMessage {
 
@@ -11,7 +11,7 @@ public class VectorMessage {
 
     public VectorMessage(int id, List<Integer> v, Object content){
         this.id = id;
-        this.vector = v;
+        this.vector = new ArrayList<>(v);
         this.content = content;
     }
 

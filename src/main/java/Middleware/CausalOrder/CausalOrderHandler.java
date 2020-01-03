@@ -36,7 +36,7 @@ public class CausalOrderHandler {
     public void logAndSaveNonAckedOperation(byte[] toSend){
         System.out.println("coh:logAndSaveNonAckedOperation -> clock of this message: " + vector.get(id));
         VectorMessage vm = s.decode(toSend);
-        nra.saveUnackedOperation(vector.get(id), vm);
+        nra.saveUnackedOperation(vm);
         nra.logOrderedOperation(vm);
     }
 
@@ -52,10 +52,10 @@ public class CausalOrderHandler {
         return vector;
     }
 
-    public byte[] createMsg(Object content, String operation) {
+    public byte[] createMsg(Object content) {
         vector.set(id, vector.get(id) + 1); // incrementa vetor local
         VectorMessage vm = new VectorMessage(id, vector, content);
-        nra.saveUnackedOperation(vector.get(id), vm);
+        nra.saveUnackedOperation(vm);
         nra.logOrderedOperation(vm);
         System.out.println("creating msg " + vm.toString() + "to send");
         return s.encode(vm);
@@ -79,17 +79,19 @@ public class CausalOrderHandler {
         if(type == 0) // normal
             nra.logOrderedOperation(msg);
         else if(msg.getId() == id) { // logs && msg que foram enviadas por este servidor
-            nra.saveUnackedOperation(vector.get(id), msg);
+            nra.saveUnackedOperation(msg);
         }
-        else{
+        else if(type == 3){
             for(VectorMessage vm : msgQueue)
                 if(msg.equals(vm)) return;
+            nra.logOrderedOperation(msg);
         }
         // vê se está ordenada, se não vai para queue
         if(inOrder(msg)){
             System.out.println("coh:read"+type+ " -> inOrder");
             updateVector(msg);
-            nra.updateClocks(msg);
+            if(msg.getId() != id)
+                nra.updateClocks(msg, vector.get(id));
             callback.accept(msg.getContent());
             updateQueue(type, callback);
         }
@@ -110,7 +112,8 @@ public class CausalOrderHandler {
                 if(type == 0)
                     nra.logOrderedOperation(msg);
                 updateVector(msg);
-                nra.updateClocks(msg);
+                if(msg.getId() != id)
+                    nra.updateClocks(msg, vector.get(id));
                 callback.accept(msg.getContent());
                 iter.remove();
                 updateQueue(type, callback);
@@ -143,8 +146,8 @@ public class CausalOrderHandler {
         return true;
     }
 
-    public MessageRecovery getMissingOperationMessage(List<Integer> vector){
-        return nra.getMissingOperationMessage(vector);
+    public MessageRecovery getMissingOperationMessage(){
+        return nra.getMissingOperationMessage();
     }
 
     public VectorMessage getVectorMessage(int messageId){
@@ -159,7 +162,6 @@ public class CausalOrderHandler {
         }
         System.out.println(header + strb);
     }
-
 
     public static void main(String[] args) throws InterruptedException {
       /*
