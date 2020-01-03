@@ -3,10 +3,10 @@ package Middleware.TwoPhaseCommit;
 public class TransactionalObject<V>{
     private V object;
     private boolean state; //true == commited, false == nonCommited
-    private int transactionId;
+    private Identifier transactionId;
 
 
-    public TransactionalObject(V object, int transactionId){
+    public TransactionalObject(V object, Identifier transactionId){
         this.object = object;
         this.state = false;
         this.transactionId = transactionId;
@@ -18,7 +18,7 @@ public class TransactionalObject<V>{
 
     public boolean isCommited(){return this.state;}
 
-    public int getTransactionId() {
+    public Identifier getTransactionId() {
         return transactionId;
     }
 

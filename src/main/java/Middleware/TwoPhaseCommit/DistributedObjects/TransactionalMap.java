@@ -1,5 +1,6 @@
 package Middleware.TwoPhaseCommit.DistributedObjects;
 
+import Middleware.TwoPhaseCommit.Identifier;
 import Middleware.TwoPhaseCommit.Participant;
 import Middleware.TwoPhaseCommit.TransactionMessage;
 import Middleware.TwoPhaseCommit.TransactionalObject;
@@ -42,10 +43,10 @@ public class TransactionalMap<K,V>{
         participant.startSecondPhase(isCommited, commit, abort);
     }
 
-    private BiFunction<MapMessage<K,V>, Integer, Boolean> firstPhaseAnswer = (mm, tid) ->{
+    private BiFunction<MapMessage<K,V>, Identifier, Boolean> firstPhaseAnswer = (mm, tid) ->{
         if(valuesById.containsKey(mm.key)){
             //caso seja um pedido doutra transação aborta
-           if(valuesById.get(mm.key).getTransactionId() != tid)
+           if(!valuesById.get(mm.key).getTransactionId().equals(tid))
                 return false;
            //caso seja um pedido repetido devolve a mesma resposta
            else return true;
@@ -68,11 +69,11 @@ public class TransactionalMap<K,V>{
         valuesById.get(mm.key).setCommited();
     };
 
-    private BiConsumer<MapMessage<K,V>, Integer> abort = (mm, tid) -> {
+    private BiConsumer<MapMessage<K,V>, Identifier> abort = (mm, tid) -> {
         //tem de a conter -> caso em que dá um abort repetido
         //e tem de ser da mesma transação -> caso em que temos 2 usernames iguais, o primeiro entra, e o segundo não
         //mas o abort do segundo não pode tirar o primeiro
-        if(valuesById.containsKey(mm.key) && valuesById.get(mm.key).getTransactionId() == tid)
+        if(valuesById.containsKey(mm.key) && valuesById.get(mm.key).getTransactionId().equals(tid))
             valuesById.remove(mm.key);
     };
 

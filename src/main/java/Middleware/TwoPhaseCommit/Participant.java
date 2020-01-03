@@ -32,12 +32,12 @@ public class Participant {
         this.requestNumber = 0;
     }
 
-    public <T> void startFirstPhase(BiFunction<T,Integer, Boolean> firstPhaseAnswer){
+    public <T> void startFirstPhase(BiFunction<T,Identifier, Boolean> firstPhaseAnswer){
         sms.registerOperation("firstphase",
                 (a,b) -> parseFirstphaseTM(sms.decode(b), firstPhaseAnswer), ses);
     }
 
-    public <T> void startSecondPhase(Function<T,Boolean> secondPhaseAnswer, Consumer<T> commit, BiConsumer<T,Integer> abort){
+    public <T> void startSecondPhase(Function<T,Boolean> secondPhaseAnswer, Consumer<T> commit, BiConsumer<T,Identifier> abort){
         sms.registerOperation("secondphase",
                 (a,b) -> parseSecondPhaseTM(sms.decode(b), secondPhaseAnswer, commit, abort), ses);
 
@@ -83,8 +83,8 @@ public class Participant {
         }
     }
 
-    private <T> byte[] parseFirstphaseTM(TransactionMessage<T> tm, BiFunction<T,Integer,Boolean> firstPhaseAnswer){
-        int tid = tm.getTransactionId().getId();
+    private <T> byte[] parseFirstphaseTM(TransactionMessage<T> tm, BiFunction<T,Identifier,Boolean> firstPhaseAnswer){
+        Identifier tid = tm.getTransactionId();
         //se existe na estrutura então recebi uma msg repetida. Manager deu reboot
         //obtém resposta prepared/abort
         boolean state = firstPhaseAnswer.apply(tm.getContent(),tid);
@@ -100,8 +100,8 @@ public class Participant {
         return sms.encode(tm);
     }
 
-    private <T> byte[] parseSecondPhaseTM(TransactionMessage<T> tm, Function<T,Boolean> isCommited, Consumer<T> commit, BiConsumer<T,Integer> abort){
-        int tid = tm.getTransactionId().getId();
+    private <T> byte[] parseSecondPhaseTM(TransactionMessage<T> tm, Function<T,Boolean> isCommited, Consumer<T> commit, BiConsumer<T,Identifier> abort){
+        Identifier tid = tm.getTransactionId();
         //só entra se não está commited ou se ocorreu um abort
         //isto bate tbm no caso do username repetido, pq o primeiro que chegue vai estar commited, mas não importa
         if(!isCommited.apply(tm.getContent())){
@@ -121,8 +121,8 @@ public class Participant {
         return sms.encode(tm);
     }
 
-    public <T> void recovery(BiFunction<T,Integer,Boolean> firstPhaseAnswer, Consumer<T> commit, BiConsumer<T,Integer> abort, TransactionMessage<T> tm){
-        int tid = tm.getTransactionId().getId();
+    public <T> void recovery(BiFunction<T,Identifier,Boolean> firstPhaseAnswer, Consumer<T> commit, BiConsumer<T,Identifier> abort, TransactionMessage<T> tm){
+        Identifier tid = tm.getTransactionId();
         T content = tm.getContent();
         if(tm.isPrepared() ){
             firstPhaseAnswer.apply(content,tid);

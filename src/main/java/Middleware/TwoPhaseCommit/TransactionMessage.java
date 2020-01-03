@@ -80,9 +80,14 @@ public class TransactionMessage<V>  {
 
     @Override
     public String toString() {
+        String content;
+            if(transactionId == null)
+                content = "null";
+            else
+                content = transactionId.toString();
         return "TransactionMessage{" +
                 "senderId=" + requestId +
-                ", transactionId=" + transactionId.toString() +
+                ", transactionId=" + content +
                 ", content= " + content.toString() +
                 ", type=" + type +
                 ", phase=" + phase +

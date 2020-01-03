@@ -34,6 +34,15 @@ public class Identifier {
     }
 
     @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Identifier that = (Identifier) o;
+        return serverId == that.serverId &&
+                id == that.id;
+    }
+
+    @Override
     public String toString() {
         return "Identifier{" +
                 "serverId" + serverId +
