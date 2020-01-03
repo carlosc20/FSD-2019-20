@@ -79,14 +79,12 @@ public class ServerMessagingService {
     // sendV2("firstphase", content, senconds, (obj,cf) -> {if first phase ready cf.complete}).thenApply(sendV2("secondPhase",)
     public CompletableFuture<Void> sendAndReceiveToClusterRecovery(String type, Object content, int seconds, BiConsumer<Address,Object> callback){
         //System.out.println("sms:sendAndReceiveLoopToCluster -> type == " + type + content.toString());
-        List<CompletableFuture<Void>> requests = new ArrayList<>();
         for (Address a : participants){
-            requests.add(sendAndReceiveLoop(a, type, content, seconds)
-                    .thenAccept(x -> callback.accept(a, s.decode(x))));
+           sendAndReceiveLoop(a, type, content, seconds)
+                    .thenAccept(x -> callback.accept(a, s.decode(x)));
         }
-        return CompletableFuture.allOf(requests.toArray(new CompletableFuture[0]));
+        return CompletableFuture.completedFuture(null);
     }
-
 
 
     //Manager para os servidores
@@ -103,7 +101,7 @@ public class ServerMessagingService {
 
 
     public CompletableFuture<Void> sendAndReceiveToCluster(String type, Object content, int seconds){
-        System.out.println("sms:sendAndReceiveLoopToCluster -> type == " + type + content.toString());
+        //System.out.println("sms:sendAndReceiveLoopToCluster -> type == " + type + content.toString());
         List<CompletableFuture<byte[]>> requests = new ArrayList<>();
         for (Address a : participants)
             requests.add(sendAndReceiveLoop(a, type, content, seconds));
@@ -112,7 +110,7 @@ public class ServerMessagingService {
 
     //protótipo
     public CompletableFuture<List<byte[]>> sendAndReceiveToClusterJoined(String type, Object content, int seconds){
-        System.out.println("sms:sendAndReceiveLoopToCluster -> type == " + type + content.toString());
+        //System.out.println("sms:sendAndReceiveLoopToCluster -> type == " + type + content.toString());
         List<CompletableFuture<byte[]>> requests = new ArrayList<>();
         for (Address a : participants)
             requests.add(sendAndReceiveLoop(a, type, content, seconds));
@@ -146,7 +144,7 @@ public class ServerMessagingService {
 
     //TODO pq não void?
     public CompletableFuture<Void> sendAsyncToCluster(String type, Object content) {
-        System.out.println("sms:sendAsyncToCluster -> type == " + type);
+        //System.out.println("sms:sendAsyncToCluster -> type == " + type);
         for (Address a : participants){
             mms.sendAsync(a, type, s.encode(content));
         }
@@ -159,6 +157,7 @@ public class ServerMessagingService {
     }
 
     public CompletableFuture<byte[]> sendAndReceive(Address a, String type, Object content, Duration d, ExecutorService e){
+        System.out.println(content.toString());
         return mms.sendAndReceive(a, type, s.encode(content), d, e);
     }
 
@@ -168,13 +167,11 @@ public class ServerMessagingService {
     }
 
     public CompletableFuture<Void> sendCausalOrderAsyncToCluster(String type, Object content) {
-        System.out.println("sms:sendCausalOrderAsyncToCluster ->");
+        //System.out.println("sms:sendCausalOrderAsyncToCluster ->");
         byte[] toSend = coh.createMsg(content, type);
         for (Address a : participants){
             mms.sendAsync(a, type, toSend);
         }
-        //TODO por ao fim de tudo allOf()...talvez
-        coh.logAndSaveNonAckedOperation(toSend);
         return CompletableFuture.completedFuture(null);
     }
 

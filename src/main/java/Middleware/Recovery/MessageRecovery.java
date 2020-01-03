@@ -2,8 +2,7 @@ package Middleware.Recovery;
 
 public class MessageRecovery {
     int id; //SENDER id
-    //if reply total is number of messages server did not receive.
-    //if request total is last clock registered from target
+    //total is equal to the number of messages server did not receive.
     int total;
 
     public MessageRecovery(int id, int total){

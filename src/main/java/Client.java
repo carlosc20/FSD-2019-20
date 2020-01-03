@@ -79,7 +79,7 @@ public class Client {
                     System.out.println("removeSub <sub>");
                     System.out.println("publish <text> <tag1> <tag2>...");
                     break;
-                case "getSubs":
+                case "getsubs":
                     publisher.getSubscriptions(username).thenAccept(subscriptions -> {
                         System.out.println("Subscrições:");
                         if(subscriptions == null) {
@@ -101,7 +101,7 @@ public class Client {
                         }
                     });
                     break;
-                case "addSub":
+                case "addsub":
                     if (cmds.length < 2) {
                         System.out.println("Argumentos insuficientes");
                         break;
@@ -110,7 +110,7 @@ public class Client {
                             System.out.println(cmds[1] + " subscrito")
                     );
                     break;
-                case "removeSub":
+                case "removesub":
                     if (cmds.length < 2) {
                         System.out.println("Argumentos insuficientes");
                         break;

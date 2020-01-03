@@ -19,15 +19,14 @@ public class TransactionalMap<K,V>{
         this.participant =participant;
     }
 
-    public CompletableFuture<byte[]> put(K key, V value){
+    public CompletableFuture<Boolean> put(K key, V value){
         MapMessage<K,V> mm = new MapMessage<>(key, value);
-        //para confirmar que o manager recebeu
         return participant.sendTransaction(mm);
     }
 
     public V get(K key){
         TransactionalObject<V> to = valuesById.get(key);
-        if(to.isCommited())
+        if(to!=null && to.isCommited())
             return to.getObject();
         return null;
     }

@@ -19,7 +19,7 @@ public class Participant {
     private ServerMessagingService sms;
     private Logger log;
     private ScheduledExecutorService ses;
-    private HashMap<Integer, Integer> requestsAnswer;
+    private HashMap<Integer, Boolean> requestsAnswer;
     private int requestNumber;
 
     public Participant(int id, Address manager, ServerMessagingService sms, Logger log){
@@ -44,18 +44,16 @@ public class Participant {
     }
 
 
-    // 200 -> commited
-    // 400 -> aborted
-    // 503 -> Service Unavailable
-    public <T> CompletableFuture<byte[]> sendTransaction(T toSend){
+    public <T> CompletableFuture<Boolean> sendTransaction(T toSend){
         this.requestNumber++;
         TransactionMessage<T> tm = new TransactionMessage<>(requestNumber, toSend);
         System.out.println("dtm:sendTransaction -> starting transaction");
+        System.out.println(tm.toString());
         return sendAndReceiveToManager(tm, requestNumber);
     }
 
-    private CompletableFuture<byte[]> sendAndReceiveToManager(TransactionMessage content, int requestNumber){
-        CompletableFuture<byte[]> cf = new CompletableFuture<>();
+    private CompletableFuture<Boolean> sendAndReceiveToManager(TransactionMessage content, int requestNumber){
+        CompletableFuture<Boolean> cf = new CompletableFuture<>();
         ScheduledFuture<?> scheduledFuture = ses.scheduleAtFixedRate(() ->
                 checkCompletion(cf, requestNumber), 6500, 4000, TimeUnit.MILLISECONDS);
         sms.sendAndReceive(manager, "startTransaction", content, Duration.ofSeconds(6), ses)
@@ -63,7 +61,7 @@ public class Participant {
                     if(t!=null){
                         if(t instanceof ConnectTimeoutException){
                             System.out.println("Service Unavailable");
-                            cf.complete(sms.encode(503));
+                            cf.complete(false);
                         }
                         else{
                             System.out.println("Request Timeout");
@@ -72,15 +70,15 @@ public class Participant {
                     }
                     else{
                         //System.out.println("completing future message " + s.decode(m).toString());
-                        cf.complete(sms.encode(m));
+                        cf.complete(sms.decode(m));
                         requestsAnswer.remove(requestNumber);
                     } });
         return cf.whenComplete((m,t) -> scheduledFuture.cancel(true));
     }
 
-    private void checkCompletion(CompletableFuture<byte[]> cf, int requestNumber) {
+    private void checkCompletion(CompletableFuture<Boolean> cf, int requestNumber) {
         if(requestsAnswer.containsKey(requestNumber)){
-            cf.complete(sms.encode(requestsAnswer.get(requestNumber)));
+            cf.complete(requestsAnswer.get(requestNumber));
             requestsAnswer.remove(requestNumber);
         }
     }
@@ -111,12 +109,12 @@ public class Participant {
             if(tm.isCommited()) {
                 System.out.println("p:parseSecondPhaseTM -> commiting transaction id == " + tm.getTransactionId());
                 commit.accept(tm.getContent());
-                requestsAnswer.put(tm.getRequestId(), 200);
+                requestsAnswer.put(tm.getRequestId(), true);
             }
             else{
                 System.out.println("p:parseSecondPhaseTM -> aborting transaction id == " + tm.getTransactionId());
                 abort.accept(tm.getContent(), tid);
-                requestsAnswer.put(tm.getRequestId(), 400);
+                requestsAnswer.put(tm.getRequestId(), false);
             }
             log.write(tm);
         }

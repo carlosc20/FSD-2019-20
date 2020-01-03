@@ -8,6 +8,8 @@ import io.netty.channel.ConnectTimeoutException;
 
 import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class ClientMessagingService {
     private ManagedMessagingService mms;
@@ -16,17 +18,17 @@ public class ClientMessagingService {
     public ClientMessagingService(Address server, Address address){
         this.server = server;
         mms = new NettyMessagingService(
-                "client",
+                "server",
                 address,
                 new MessagingConfig());
         mms.start();
     }
 
-    public void send(byte[] data, String type){
-        mms.sendAsync(server, type, data);
-    }
-
     public CompletableFuture<byte[]> sendAndReceive(byte[] data, String type){
-        return mms.sendAndReceive(server, type, data, Duration.ofSeconds(5));
+        return mms.sendAndReceive(server, type, data, Duration.ofSeconds(20))
+                .whenComplete((m,t) -> {
+                    if(t!=null)
+                        System.out.println("Server is unavailable try again later");
+                });
     }
 }

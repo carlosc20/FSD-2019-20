@@ -1,5 +1,6 @@
 import Logic.Post;
 import Logic.Publisher;
+import Logic.User;
 import Middleware.*;
 import Middleware.Marshalling.*;
 import io.atomix.utils.net.Address;
@@ -12,7 +13,7 @@ import java.util.concurrent.CompletableFuture;
 public class PublisherStub implements Publisher {
 
     private ClientMessagingService ms;
-    private Serializer s = new GlobalSerializer().build();
+    private Serializer s =new GlobalSerializer().build();
     private static final int[] servers = new int[]{10000,10001,10002};
 
     // definido no método login
@@ -20,6 +21,7 @@ public class PublisherStub implements Publisher {
 
     public PublisherStub(int port) {
         int rnd = new Random().nextInt(servers.length);
+        System.out.println("Server " + rnd + " will answer your requests");
         ms = new ClientMessagingService(Address.from(servers[rnd]), Address.from(port));
     }
 

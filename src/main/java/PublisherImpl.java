@@ -13,6 +13,7 @@ import io.atomix.utils.net.Address;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
 
 public class PublisherImpl implements Publisher {
 
@@ -22,7 +23,7 @@ public class PublisherImpl implements Publisher {
     private static final int n = 10; // nr de posts devolvidos no getLast
 
 
-    public PublisherImpl(List<String> topics, int id, Address manager, ServerMessagingService sms, Logger log) {
+    public PublisherImpl(List<String> topics, int id, Address manager, ServerMessagingService sms, Logger log, Consumer<Integer> serverStart) {
         this.lastPostId = 0;
         Participant p = new Participant(id, manager, sms, log);
         this.users = new TransactionalMap<>(p);
@@ -31,15 +32,17 @@ public class PublisherImpl implements Publisher {
             posts.put(topic, new CircularArray<>(n));
         }
         new Recovery(log,sms).start((obj) -> {
+            //TODO colocar as que faltam
             MessageSend msg = (MessageSend) obj;
             publish(msg.getUsername(), msg.getText(), msg.getTopics());
-        }, users);
+        }, users, serverStart);
         users.start();
     }
 
     @Override
     public CompletableFuture<Boolean> login(String username, String password) {
         User user = users.get(username);
+        if(user == null) return CompletableFuture.completedFuture(false);
         return CompletableFuture.completedFuture(user.getPassword().equals(password));
     }
 
@@ -49,9 +52,7 @@ public class PublisherImpl implements Publisher {
             return CompletableFuture.completedFuture(false);
 
         User newUser = new User(username,password);
-        users.put(username, newUser);
-
-        return CompletableFuture.completedFuture(true);
+        return users.put(username, newUser);
     }
 
     @Override

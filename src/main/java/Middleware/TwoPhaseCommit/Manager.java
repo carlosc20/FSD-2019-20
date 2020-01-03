@@ -86,9 +86,9 @@ public class Manager {
                                 tm.setFinished();
                                 log.write(tm);
                                 if(state)
-                                    reply.complete(s.encode(0));
+                                    reply.complete(s.encode(true));
                                 else
-                                    reply.complete(s.encode(1));
+                                    reply.complete(s.encode(false));
                                 //System.out.println("manager:secondphase -> removing entry to tid == " + tid);
                                 //acabou -> para responder a quem pede
                                 transactions.remove(tid);

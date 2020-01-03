@@ -1,7 +1,10 @@
 package Middleware;
 
+import Logic.Post;
 import Logic.User;
 import Middleware.CausalOrder.VectorMessage;
+import Middleware.Logging.SubscriptionLog;
+import Middleware.Logging.UnsubscriptionLog;
 import Middleware.Marshalling.*;
 import Middleware.Recovery.MessageRecovery;
 import Middleware.TwoPhaseCommit.DistributedObjects.MapMessage;
@@ -27,14 +30,13 @@ public class GlobalSerializer {
                 .addType(MessageAuth.class)
                 .addType(MessageSend.class)
                 .addType(MessageSub.class)
+                .addType(MessageReply.class)
                 .addType(MessageRecovery.class)
                 .addType(MapMessage.class)
-                .addType(MessageReply.class)
+                .addType(SubscriptionLog.class)
+                .addType(UnsubscriptionLog.class)
+                .addType(Post.class)
                 .addType(User.class);
-    }
-
-    public void addType(Class<?> type){
-        sb.addType(type);
     }
 
     public Serializer build(){

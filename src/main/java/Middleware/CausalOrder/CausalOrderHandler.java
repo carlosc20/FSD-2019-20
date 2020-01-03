@@ -9,6 +9,8 @@ import java.util.function.Consumer;
 
 public class CausalOrderHandler {
 
+    private int sequenceNumber = 0;
+
     private int id;
     private List<Integer> vector;
     private Queue<VectorMessage> msgQueue;
@@ -53,11 +55,9 @@ public class CausalOrderHandler {
     public byte[] createMsg(Object content, String operation) {
         vector.set(id, vector.get(id) + 1); // incrementa vetor local
         VectorMessage vm = new VectorMessage(id, vector, content);
-
-        System.out.println(vm.toString());
-        //TODO cuidado
-        //TODO add to
-
+        nra.saveUnackedOperation(vector.get(id), vm);
+        nra.logOrderedOperation(vm);
+        System.out.println("creating msg " + vm.toString() + "to send");
         return s.encode(vm);
     }
 
@@ -71,13 +71,14 @@ public class CausalOrderHandler {
 
     // type 0 -> normal, 1 -> logs
     private void read(int type, byte[] b, Consumer<Object> callback){
+        sequenceNumber++;
         VectorMessage msg = s.decode(b);
-        System.out.println("coh:read"+type+ "-> Received a msg "+ msg.toString());
+        System.out.println("coh:read"+type+ "-> Received a msg "+ msg.toString() + " sequenceNumber = " + sequenceNumber);
         System.out.println("coh:read"+type+ "-> from server " + msg.getId() + " and I have " + vector.get(msg.getId())+ " as is clock");
 
         if(type == 0) // normal
             nra.logOrderedOperation(msg);
-        else if(msg.getId() == id) { // logs
+        else if(msg.getId() == id) { // logs && msg que foram enviadas por este servidor
             nra.saveUnackedOperation(vector.get(id), msg);
         }
         else{
