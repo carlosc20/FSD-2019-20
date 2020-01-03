@@ -8,6 +8,7 @@ import Middleware.Logging.UnsubscriptionLog;
 import Middleware.Marshalling.*;
 import Middleware.Recovery.MessageRecovery;
 import Middleware.TwoPhaseCommit.DistributedObjects.MapMessage;
+import Middleware.TwoPhaseCommit.Identifier;
 import Middleware.TwoPhaseCommit.TransactionMessage;
 import io.atomix.utils.net.Address;
 import io.atomix.utils.serializer.Serializer;
@@ -35,6 +36,7 @@ public class GlobalSerializer {
                 .addType(MapMessage.class)
                 .addType(SubscriptionLog.class)
                 .addType(UnsubscriptionLog.class)
+                .addType(Identifier.class)
                 .addType(Post.class)
                 .addType(User.class);
     }

@@ -5,7 +5,7 @@ import java.util.List;
 
 public class VectorMessage {
 
-    private int id; // id do sender
+    private int id; // id de quem envia
     private List<Integer> vector;
     private Object content;
 

@@ -2,24 +2,24 @@ package Middleware.TwoPhaseCommit;
 
 public class TransactionMessage<V>  {
     private int requestId;
-    private int transactionId;
+    private Identifier transactionId;
     private char type;
     private int phase;
     private V content;
 
     public TransactionMessage(int requestId, V content){
         this.requestId = requestId;
-        this.transactionId = -1;
+        this.transactionId = null;
         this.type = 'b';
         this.phase = 0;
         this.content = content;
     }
 
-    public int getTransactionId() {
+    public Identifier getTransactionId() {
         return transactionId;
     }
 
-    public void setTransactionId(int transactionId) {
+    public void setTransactionId(Identifier transactionId) {
         this.transactionId = transactionId;
     }
 
@@ -82,7 +82,7 @@ public class TransactionMessage<V>  {
     public String toString() {
         return "TransactionMessage{" +
                 "senderId=" + requestId +
-                ", transactionId=" + transactionId +
+                ", transactionId=" + transactionId.toString() +
                 ", content= " + content.toString() +
                 ", type=" + type +
                 ", phase=" + phase +

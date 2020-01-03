@@ -55,8 +55,8 @@ public class Participant {
     private CompletableFuture<Boolean> sendAndReceiveToManager(TransactionMessage content, int requestNumber){
         CompletableFuture<Boolean> cf = new CompletableFuture<>();
         ScheduledFuture<?> scheduledFuture = ses.scheduleAtFixedRate(() ->
-                checkCompletion(cf, requestNumber), 6500, 4000, TimeUnit.MILLISECONDS);
-        sms.sendAndReceive(manager, "startTransaction", content, Duration.ofSeconds(6), ses)
+                checkCompletion(cf, requestNumber), 9000, 4000, TimeUnit.MILLISECONDS);
+        sms.sendAndReceive(manager, "startTransaction", content, Duration.ofSeconds(8), ses)
                 .whenComplete((m,t) -> {
                     if(t!=null){
                         if(t instanceof ConnectTimeoutException){
@@ -84,7 +84,7 @@ public class Participant {
     }
 
     private <T> byte[] parseFirstphaseTM(TransactionMessage<T> tm, BiFunction<T,Integer,Boolean> firstPhaseAnswer){
-        int tid = tm.getTransactionId();
+        int tid = tm.getTransactionId().getId();
         //se existe na estrutura então recebi uma msg repetida. Manager deu reboot
         //obtém resposta prepared/abort
         boolean state = firstPhaseAnswer.apply(tm.getContent(),tid);
@@ -101,7 +101,7 @@ public class Participant {
     }
 
     private <T> byte[] parseSecondPhaseTM(TransactionMessage<T> tm, Function<T,Boolean> isCommited, Consumer<T> commit, BiConsumer<T,Integer> abort){
-        int tid = tm.getTransactionId();
+        int tid = tm.getTransactionId().getId();
         //só entra se não está commited ou se ocorreu um abort
         //isto bate tbm no caso do username repetido, pq o primeiro que chegue vai estar commited, mas não importa
         if(!isCommited.apply(tm.getContent())){
@@ -122,7 +122,7 @@ public class Participant {
     }
 
     public <T> void recovery(BiFunction<T,Integer,Boolean> firstPhaseAnswer, Consumer<T> commit, BiConsumer<T,Integer> abort, TransactionMessage<T> tm){
-        int tid = tm.getTransactionId();
+        int tid = tm.getTransactionId().getId();
         T content = tm.getContent();
         if(tm.isPrepared() ){
             firstPhaseAnswer.apply(content,tid);

@@ -16,7 +16,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
 public class Manager {
-    private int debugCount = 0;
+    private int id;
     private int numTransactions;
     private Map<Integer, Integer> transactions;
     private List<Address> staticParticipants;
@@ -25,6 +25,7 @@ public class Manager {
     private ServerMessagingService sms;
 
     public Manager(int id, Address address, List<Address> participants) {
+        this.id = id;
         this.numTransactions= 0;
         this.transactions= new HashMap<>();
         this.s = new GlobalSerializer().build();
@@ -50,22 +51,15 @@ public class Manager {
         numTransactions++;
         System.out.println("manager -> transaction request id " + numTransactions);
         transactions.put(numTransactions, 1);
-        tm.setTransactionId(numTransactions);
+        Identifier id = new Identifier(this.id, numTransactions);
+        tm.setTransactionId(id);
         tm.setPrepared();
     }
 
-    public CompletableFuture<byte[]> debbuger(){
-        MapMessage<String, String> mm = new MapMessage<>("marco", "123");
-        TransactionMessage tm = new TransactionMessage(0, mm);
-        beginTransaction(tm);
-        log.write(tm);
-        tm.setPhase(1);
-        return startFullProtocol(tm);
-    }
 
     private CompletableFuture<byte[]> startFullProtocol(TransactionMessage tm){
         CompletableFuture<byte[]> reply = new CompletableFuture<>();
-        int tid = tm.getTransactionId();
+        int tid = tm.getTransactionId().getId();
         sms.sendAndReceiveToCluster("firstphase", tm, 6, firstPhase)
                 .thenAccept(x -> {
                     boolean state = transactions.get(tid) == 1;
@@ -92,54 +86,21 @@ public class Manager {
         return reply;
     }
 
-    public CompletableFuture<TransactionMessage> debbugerPrototipe(){
-        MapMessage<String, String> mm = new MapMessage<>("marco", "123");
-        TransactionMessage tm = new TransactionMessage(0, mm);
-        beginTransaction(tm);
-        log.write(tm);
-        tm.setPhase(1);
-        return startFullProtocolPrototipe(tm);
-    }
-
-    private CompletableFuture<TransactionMessage> startFullProtocolPrototipe(TransactionMessage tm){
-        int tid = tm.getTransactionId();
-        CompletableFuture<TransactionMessage> cf = new CompletableFuture<>();
-        sms.sendAndReceiveToClusterJoined("firstphase", tm, 6)
-                .thenAccept(list -> {
-                    tm.setCommited();
-                    for(byte[] b : list){
-                        TransactionMessage reply = s.decode(b);
-                        if(reply.isAborted()){
-                            tm.setAborted();
-                        }
-                    }
-                    log.write(tm);
-                    tm.setPhase(2);
-                    sms.sendAndReceiveToCluster("secondphase", tm, 6)
-                        .thenAccept(x -> {
-                            tm.setFinished();
-                            log.write(tm);
-                            cf.complete(tm);
-                        });
-                });
-        return cf;
-    }
-
     private CompletableFuture<Void> startHalfProtocol(TransactionMessage tm){
         return sms.sendAndReceiveToCluster("secondphase", tm, 6)
                     .thenAccept(y -> {
                         tm.setFinished();
                         log.write(tm);
-                        transactions.put(tm.getTransactionId(),3);
+                        transactions.put(tm.getTransactionId().getId(),3);
                     });
     }
 
 
     private Consumer<Object> firstPhase = (b) ->{
         TransactionMessage tm = (TransactionMessage) b;
-        int tid = tm.getTransactionId();
+        int tid = tm.getTransactionId().getId();
             if (tm.isAborted()) {
-                transactions.put(tm.getTransactionId(), 2);
+                transactions.put(tid, 2);
                 System.out.println("manager:firstphasereg -> aborting tid == " + tm.getTransactionId() + " from ");
             }
     };
@@ -148,12 +109,12 @@ public class Manager {
         HashMap<Integer, TransactionMessage> auxiliar = new HashMap<>();
         log.recover((msg) ->{
             TransactionMessage tm = (TransactionMessage) msg;
-            auxiliar.put(tm.getTransactionId(), tm);
+            auxiliar.put(tm.getTransactionId().getId(), tm);
         });
         for(TransactionMessage tm : auxiliar.values()){
             numTransactions++;
             if(tm.isPrepared()){
-                transactions.put(tm.getTransactionId(), 1);
+                transactions.put(tm.getTransactionId().getId(), 1);
                 startFullProtocol(tm);
             }
             else if(tm.isFinished()) continue;
@@ -171,28 +132,5 @@ public class Manager {
         }
         Manager managerServer = new Manager(100, manager, addresses);
         managerServer.start();
-       /*
-        ScheduledExecutorService ses = Executors.newScheduledThreadPool(1);
-        BufferedWriter writer = new BufferedWriter(new FileWriter("times.txt", true));
-        long startTime = System.currentTimeMillis();
-        int batchSize = 80;
-        for (int j = 0; j < batchSize; j++) {
-            ses.schedule(() -> {
-                managerServer.debbugerPrototipe().thenAccept(x -> {
-                    managerServer.debugCount++;
-                    if(managerServer.debugCount == batchSize) {
-                        long stopTime = System.currentTimeMillis();
-                        long elapsedTime = stopTime - startTime;
-                        try {
-                            writer.append(batchSize+ " requests -> time in exec was " + (int) elapsedTime + "\n");
-                            System.out.println("Finished!");
-                           writer.close();
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                });
-            }, j*200, TimeUnit.MILLISECONDS);
-        }*/
     }
 }
